@@ -5,1805 +5,672 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Chattanooga Permits Dashboard</title>
 
-<!-- Libraries -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/MarkerCluster.Default.css"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.markercluster/1.5.3/leaflet.markercluster.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
 
 <style>
-:root {
-  --bg: #0a0e1a;
-  --bg2: #0f1422;
-  --bg3: #141928;
-  --card: #141928;
-  --card2: #1a2035;
-  --border: #1e2a42;
-  --border2: #243050;
-  --accent: #00d4ff;
-  --accent2: #0099cc;
-  --green: #00e676;
-  --yellow: #ffd740;
-  --red: #ff5252;
-  --orange: #ff9100;
-  --purple: #e040fb;
-  --text: #e8eaf6;
-  --text2: #8892b0;
-  --text3: #4a5568;
-  --glow: 0 0 20px rgba(0,212,255,0.15);
+:root{
+  --bg:#080c17;--bg2:#0d1120;--bg3:#121829;--card:#131825;--card2:#18203a;
+  --border:#1c2840;--border2:#213052;--accent:#00d4ff;--accent2:#0094cc;
+  --green:#00e676;--yellow:#ffd740;--red:#ff5252;--orange:#ff9100;--purple:#e040fb;--teal:#1de9b6;
+  --text:#e2e8f8;--text2:#7a8aaa;--text3:#3a4a66;
 }
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
-
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Barlow', sans-serif;
-  font-size: 14px;
-  overflow-x: hidden;
-}
-
-/* Scrollbar */
-::-webkit-scrollbar { width: 4px; height: 4px; }
-::-webkit-scrollbar-track { background: var(--bg2); }
-::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
-
-/* HEADER */
-#header {
-  background: linear-gradient(135deg, #0a0e1a 0%, #0f1932 100%);
-  border-bottom: 1px solid var(--border);
-  padding: 0 24px;
-  position: sticky;
-  top: 0;
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  height: 56px;
-  backdrop-filter: blur(10px);
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.logo-icon {
-  width: 32px; height: 32px;
-  background: linear-gradient(135deg, var(--accent), var(--accent2));
-  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
-  display: flex; align-items: center; justify-content: center;
-}
-.logo-text {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 18px;
-  font-weight: 700;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--text);
-}
-.logo-text span { color: var(--accent); }
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-#status-pill {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  background: rgba(0,230,118,0.1);
-  border: 1px solid rgba(0,230,118,0.3);
-  border-radius: 20px;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
-  color: var(--green);
-}
-#status-dot {
-  width: 6px; height: 6px;
-  background: var(--green);
-  border-radius: 50%;
-  animation: pulse 2s infinite;
-}
-@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
-
-#record-count-badge {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
-  color: var(--text2);
-}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;font-size:14px;overflow-x:hidden}
+::-webkit-scrollbar{width:4px;height:4px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 
 /* LOADING */
-#loading-screen {
-  position: fixed; inset: 0;
-  background: var(--bg);
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 24px;
-}
-.loader-ring {
-  width: 64px; height: 64px;
-  border: 3px solid var(--border2);
-  border-top: 3px solid var(--accent);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-#loading-msg {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 13px;
-  color: var(--text2);
-  letter-spacing: 1px;
-}
-.loader-bar {
-  width: 300px; height: 2px;
-  background: var(--border);
-  border-radius: 1px;
-  overflow: hidden;
-}
-.loader-fill {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent2), var(--accent));
-  width: 0%;
-  transition: width 0.3s ease;
-  border-radius: 1px;
-}
+#ls{position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px}
+.lhex{width:60px;height:60px;background:linear-gradient(135deg,var(--accent2),var(--accent));clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%);animation:hspin 1.4s ease-in-out infinite}
+@keyframes hspin{0%,100%{transform:rotate(0deg) scale(1)}50%{transform:rotate(180deg) scale(.8)}}
+#lmsg{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text2);letter-spacing:2px;text-transform:uppercase}
+.lbar{width:280px;height:2px;background:var(--border);border-radius:1px;overflow:hidden}
+.lfill{height:100%;width:0%;background:linear-gradient(90deg,var(--accent2),var(--accent));transition:width .4s ease;border-radius:1px}
+#lsub{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text3);letter-spacing:1px}
 
-/* UPLOAD FALLBACK */
-#upload-zone {
-  display: none;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 48px;
-  border: 2px dashed var(--border2);
-  border-radius: 12px;
-  margin: 40px auto;
-  max-width: 500px;
-  cursor: pointer;
-  transition: border-color 0.2s;
-}
-#upload-zone:hover { border-color: var(--accent); }
-#upload-zone.drag-over { border-color: var(--accent); background: rgba(0,212,255,0.05); }
-.upload-icon { font-size: 48px; }
-.upload-title { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 700; }
-.upload-sub { color: var(--text2); font-size: 13px; text-align: center; line-height: 1.5; }
-.upload-btn {
-  padding: 10px 24px;
-  background: linear-gradient(135deg, var(--accent2), var(--accent));
-  color: #000;
-  border: none;
-  border-radius: 6px;
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 1px;
-  cursor: pointer;
-  text-transform: uppercase;
-}
+/* HEADER */
+#hdr{background:var(--bg2);border-bottom:1px solid var(--border);padding:0 22px;height:54px;position:sticky;top:0;z-index:200;display:flex;align-items:center;justify-content:space-between}
+.logo{display:flex;align-items:center;gap:10px}
+.lhex2{width:30px;height:30px;background:linear-gradient(135deg,var(--accent2),var(--accent));clip-path:polygon(50% 0%,100% 25%,100% 75%,50% 100%,0% 75%,0% 25%)}
+.lname{font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:800;letter-spacing:2.5px;text-transform:uppercase}
+.lname span{color:var(--accent)}
+.hright{display:flex;align-items:center;gap:14px}
+#hcnt{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text3)}
+#spill{display:flex;align-items:center;gap:5px;padding:3px 10px;background:rgba(0,230,118,.08);border:1px solid rgba(0,230,118,.25);border-radius:20px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--green)}
+#sdot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 
 /* TABS */
-#nav-tabs {
-  background: var(--bg2);
-  border-bottom: 1px solid var(--border);
-  display: flex;
-  gap: 0;
-  padding: 0 24px;
-  overflow-x: auto;
-}
-.tab-btn {
-  padding: 14px 20px;
-  background: transparent;
-  border: none;
-  color: var(--text2);
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 14px;
-  font-weight: 600;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  cursor: pointer;
-  border-bottom: 2px solid transparent;
-  white-space: nowrap;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.tab-btn:hover { color: var(--text); }
-.tab-btn.active {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-}
-.tab-icon { font-size: 14px; }
+#nav{background:var(--bg2);border-bottom:1px solid var(--border);display:flex;padding:0 22px;overflow-x:auto}
+.tab{padding:13px 18px;border:none;background:transparent;color:var(--text2);font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;display:flex;align-items:center;gap:6px;transition:color .15s}
+.tab:hover{color:var(--text)}.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
 
 /* MAIN */
-#main {
-  padding: 24px;
-  max-width: 1600px;
-  margin: 0 auto;
-}
+#main{padding:22px;max-width:1600px;margin:0 auto}
+.tv{display:none}.tv.active{display:block}
 
-/* KPI CARDS */
-#kpi-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 16px;
-  margin-bottom: 24px;
-}
-.kpi-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 20px;
-  position: relative;
-  overflow: hidden;
-  transition: transform 0.2s, border-color 0.2s;
-}
-.kpi-card:hover {
-  transform: translateY(-2px);
-  border-color: var(--border2);
-}
-.kpi-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-}
-.kpi-card.blue::before { background: linear-gradient(90deg, var(--accent2), var(--accent)); }
-.kpi-card.green::before { background: linear-gradient(90deg, #00b248, var(--green)); }
-.kpi-card.yellow::before { background: linear-gradient(90deg, #e65100, var(--yellow)); }
-.kpi-card.red::before { background: linear-gradient(90deg, #b71c1c, var(--red)); }
-.kpi-card.purple::before { background: linear-gradient(90deg, #6a1b9a, var(--purple)); }
-.kpi-card.orange::before { background: linear-gradient(90deg, #e65100, var(--orange)); }
-
-.kpi-label {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--text3);
-  margin-bottom: 8px;
-}
-.kpi-value {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 36px;
-  font-weight: 800;
-  line-height: 1;
-  margin-bottom: 4px;
-}
-.kpi-card.blue .kpi-value { color: var(--accent); }
-.kpi-card.green .kpi-value { color: var(--green); }
-.kpi-card.yellow .kpi-value { color: var(--yellow); }
-.kpi-card.red .kpi-value { color: var(--red); }
-.kpi-card.purple .kpi-value { color: var(--purple); }
-.kpi-card.orange .kpi-value { color: var(--orange); }
-.kpi-sub {
-  font-size: 11px;
-  color: var(--text3);
-}
+/* KPI */
+#kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:22px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px 18px 14px;position:relative;overflow:hidden;transition:transform .2s,border-color .2s;animation:fu .4s ease both}
+.kpi:hover{transform:translateY(-2px);border-color:var(--border2)}
+.kpi::after{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.c0::after{background:linear-gradient(90deg,var(--accent2),var(--accent))}.kpi.c1::after{background:linear-gradient(90deg,#00884a,var(--green))}.kpi.c2::after{background:linear-gradient(90deg,#cc8800,var(--yellow))}.kpi.c3::after{background:linear-gradient(90deg,#aa1111,var(--red))}.kpi.c4::after{background:linear-gradient(90deg,#880077,var(--purple))}.kpi.c5::after{background:linear-gradient(90deg,#006688,var(--teal))}
+.kl{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--text3);margin-bottom:8px}
+.kv{font-family:'Barlow Condensed',sans-serif;font-size:34px;font-weight:800;line-height:1;margin-bottom:4px}
+.kpi.c0 .kv{color:var(--accent)}.kpi.c1 .kv{color:var(--green)}.kpi.c2 .kv{color:var(--yellow)}.kpi.c3 .kv{color:var(--red)}.kpi.c4 .kv{color:var(--purple)}.kpi.c5 .kv{color:var(--teal)}
+.ks{font-size:10px;color:var(--text3)}
+@keyframes fu{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+.kpi:nth-child(1){animation-delay:.05s}.kpi:nth-child(2){animation-delay:.1s}.kpi:nth-child(3){animation-delay:.15s}.kpi:nth-child(4){animation-delay:.2s}.kpi:nth-child(5){animation-delay:.25s}.kpi:nth-child(6){animation-delay:.3s}
 
 /* CHART GRID */
-.chart-grid {
-  display: grid;
-  gap: 20px;
-}
-.grid-2 { grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); }
-.grid-3 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
-.grid-1 { grid-template-columns: 1fr; }
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(380px,1fr));gap:18px;margin-bottom:18px}
+.g3{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;margin-bottom:18px}
+.g1{display:grid;grid-template-columns:1fr;gap:18px;margin-bottom:18px}
+.cc{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px;animation:fu .5s ease both}
+.ct{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text2);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.cb{font-family:'IBM Plex Mono',monospace;font-size:9px;padding:2px 7px;border-radius:3px;background:rgba(0,212,255,.08);color:var(--accent);border:1px solid rgba(0,212,255,.18)}
+.cw{position:relative;width:100%}.cw canvas{max-width:100%}
+.sep{display:flex;align-items:center;gap:10px;margin:22px 0 14px}
+.sl{flex:1;height:1px;background:var(--border)}.slb{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--text3);white-space:nowrap}
 
-.chart-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 20px;
-  position: relative;
-}
-.chart-title {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 14px;
-  font-weight: 700;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  color: var(--text2);
-  margin-bottom: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.chart-title-badge {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: rgba(0,212,255,0.1);
-  color: var(--accent);
-  border: 1px solid rgba(0,212,255,0.2);
-}
-.chart-wrap {
-  position: relative;
-  width: 100%;
-}
-.chart-wrap canvas {
-  max-width: 100%;
-}
-
-/* FILTER BAR */
-#filter-bar {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 16px 20px;
-  margin-bottom: 20px;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  align-items: center;
-}
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 140px;
-  flex: 1;
-}
-.filter-label {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 10px;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: var(--text3);
-}
-.filter-select, .filter-input {
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  color: var(--text);
-  padding: 7px 10px;
-  border-radius: 6px;
-  font-size: 13px;
-  font-family: 'Barlow', sans-serif;
-  outline: none;
-  transition: border-color 0.2s;
-  cursor: pointer;
-  width: 100%;
-}
-.filter-select:hover, .filter-input:hover { border-color: var(--border2); }
-.filter-select:focus, .filter-input:focus { border-color: var(--accent2); }
+/* FILTERS */
+#fb{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 18px;margin-bottom:16px;display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.fg{display:flex;flex-direction:column;gap:4px;min-width:130px;flex:1}
+.fl{font-family:'IBM Plex Mono',monospace;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text3)}
+select.fs,input.fs{background:var(--bg3);border:1px solid var(--border);color:var(--text);padding:6px 10px;border-radius:6px;font-size:12px;font-family:'Barlow',sans-serif;outline:none;transition:border-color .15s;width:100%;cursor:pointer}
+select.fs:focus,input.fs:focus{border-color:var(--accent2)}
 
 /* TABLE */
-#table-wrap {
-  overflow: auto;
-  border-radius: 8px;
-  border: 1px solid var(--border);
-}
-#data-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 12px;
-}
-#data-table thead tr {
-  background: var(--bg3);
-  border-bottom: 1px solid var(--border2);
-}
-#data-table thead th {
-  padding: 12px 14px;
-  text-align: left;
-  font-size: 10px;
-  letter-spacing: 1.5px;
-  text-transform: uppercase;
-  color: var(--text2);
-  white-space: nowrap;
-  cursor: pointer;
-  user-select: none;
-  transition: color 0.2s;
-}
-#data-table thead th:hover { color: var(--accent); }
-#data-table thead th.sorted { color: var(--accent); }
-#data-table tbody tr {
-  border-bottom: 1px solid var(--border);
-  transition: background 0.1s;
-}
-#data-table tbody tr:hover { background: var(--card2); }
-#data-table tbody td {
-  padding: 10px 14px;
-  color: var(--text2);
-  white-space: nowrap;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-#data-table tbody td:first-child { color: var(--accent); }
+#tw{overflow:auto;border-radius:8px 8px 0 0;border:1px solid var(--border)}
+#dt{width:100%;border-collapse:collapse;font-family:'IBM Plex Mono',monospace;font-size:11px}
+#dt thead tr{background:var(--bg3);border-bottom:1px solid var(--border2)}
+#dt thead th{padding:11px 12px;text-align:left;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text2);white-space:nowrap;cursor:pointer;user-select:none;transition:color .15s}
+#dt thead th:hover,#dt thead th.sorted{color:var(--accent)}
+#dt tbody tr{border-bottom:1px solid var(--border);transition:background .1s}
+#dt tbody tr:hover{background:var(--card2)}
+#dt tbody td{padding:9px 12px;color:var(--text2);white-space:nowrap;max-width:180px;overflow:hidden;text-overflow:ellipsis}
+#dt tbody td:first-child{color:var(--accent)}
+.sb{display:inline-block;padding:2px 7px;border-radius:3px;font-size:9px;font-weight:500;letter-spacing:.8px;text-transform:uppercase}
+.si{background:rgba(0,230,118,.1);color:var(--green);border:1px solid rgba(0,230,118,.22)}.sp{background:rgba(255,215,64,.1);color:var(--yellow);border:1px solid rgba(255,215,64,.22)}.se{background:rgba(255,82,82,.1);color:var(--red);border:1px solid rgba(255,82,82,.22)}.so{background:rgba(122,138,170,.1);color:var(--text2);border:1px solid rgba(122,138,170,.18)}
 
-.status-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 3px;
-  font-size: 10px;
-  font-weight: 500;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-}
-.status-issued { background: rgba(0,230,118,0.12); color: var(--green); border: 1px solid rgba(0,230,118,0.25); }
-.status-pending { background: rgba(255,215,64,0.12); color: var(--yellow); border: 1px solid rgba(255,215,64,0.25); }
-.status-expired { background: rgba(255,82,82,0.12); color: var(--red); border: 1px solid rgba(255,82,82,0.25); }
-.status-voided { background: rgba(255,145,0,0.12); color: var(--orange); border: 1px solid rgba(255,145,0,0.25); }
-.status-other { background: rgba(136,146,176,0.12); color: var(--text2); border: 1px solid rgba(136,146,176,0.2); }
-
-/* PAGINATION */
-#pagination {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 20px;
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-top: none;
-  border-radius: 0 0 10px 10px;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-.page-info {
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
-  color: var(--text3);
-}
-.page-btns { display: flex; gap: 4px; }
-.page-btn {
-  padding: 4px 10px;
-  background: var(--bg3);
-  border: 1px solid var(--border);
-  color: var(--text2);
-  border-radius: 4px;
-  cursor: pointer;
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 11px;
-  transition: all 0.15s;
-}
-.page-btn:hover { border-color: var(--accent2); color: var(--accent); }
-.page-btn.active { background: rgba(0,212,255,0.1); border-color: var(--accent2); color: var(--accent); }
-.page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+/* PAGER */
+#pg{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--card);border:1px solid var(--border);border-top:none;border-radius:0 0 8px 8px;flex-wrap:wrap;gap:6px}
+.pi{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text3)}
+.pbs{display:flex;gap:3px}
+.pb{padding:4px 9px;background:var(--bg3);border:1px solid var(--border);color:var(--text2);border-radius:4px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:10px;transition:all .15s}
+.pb:hover{border-color:var(--accent2);color:var(--accent)}.pb.act{background:rgba(0,212,255,.1);border-color:var(--accent2);color:var(--accent)}
 
 /* MAP */
-#map-container { height: 500px; border-radius: 8px; overflow: hidden; }
-#permit-map { height: 100%; width: 100%; }
+#mapc{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:16px}
+#maptb{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.maptitle{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--text2)}
+#mapstats{display:flex;gap:12px;flex-wrap:wrap}
+.ms{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text3)}.ms span{color:var(--accent)}
+#permit-map{height:520px;width:100%;border-radius:8px;overflow:hidden;z-index:1}
+#maplegend{display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;padding:10px 14px;background:var(--bg3);border-radius:6px;border:1px solid var(--border)}
+.li{display:flex;align-items:center;gap:6px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text2)}
+.ld{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+#mapinfo{margin-top:10px;padding:10px 14px;background:var(--bg3);border-radius:6px;border:1px solid var(--border);font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text2);min-height:36px;line-height:1.6}
+#mapinfo.err{border-color:rgba(255,82,82,.3);color:var(--red);background:rgba(255,82,82,.06)}
+#mapinfo.warn{border-color:rgba(255,215,64,.3);color:var(--yellow);background:rgba(255,215,64,.06)}
+#mapinfo.ok{border-color:rgba(0,230,118,.3);color:var(--green);background:rgba(0,230,118,.05)}
 
-/* TIMELINE (D3) */
-#timeline-wrap { height: 220px; width: 100%; }
+/* D3 */
+#tlwrap{height:210px;width:100%}
+#tmwrap{height:300px;width:100%}
+#hmwrap{width:100%;overflow-x:auto}
 
-/* TREEMAP (D3) */
-#treemap-wrap { height: 320px; width: 100%; }
+/* UPLOAD */
+#uz{display:none;flex-direction:column;align-items:center;gap:14px;padding:44px 30px;border:2px dashed var(--border2);border-radius:12px;margin:30px auto;max-width:520px;cursor:pointer;text-align:center;transition:border-color .2s,background .2s}
+#uz:hover,#uz.dov{border-color:var(--accent);background:rgba(0,212,255,.03)}
+.uico{font-size:44px}.utit{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700}
+.usub{font-size:12px;color:var(--text2);line-height:1.6}
+.ubtn{padding:9px 22px;background:linear-gradient(135deg,var(--accent2),var(--accent));color:#000;border:none;border-radius:6px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:800;letter-spacing:1px;cursor:pointer;text-transform:uppercase}
 
-/* HEATMAP (D3) */
-#heatmap-wrap { height: 260px; width: 100%; overflow-x: auto; }
+/* Leaflet dark popup */
+.leaflet-popup-content-wrapper{background:var(--card2)!important;border:1px solid var(--border2)!important;border-radius:8px!important;box-shadow:0 4px 20px rgba(0,0,0,.6)!important}
+.leaflet-popup-tip{background:var(--card2)!important}
+.leaflet-popup-content{color:var(--text)!important;font-family:'IBM Plex Mono',monospace!important;font-size:11px!important;margin:10px 14px!important;line-height:1.7!important}
 
-/* TAB VIEWS */
-.tab-view { display: none; }
-.tab-view.active { display: block; }
-
-/* SECTION LABELS */
-.section-sep {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin: 24px 0 16px;
-}
-.section-sep-line { flex: 1; height: 1px; background: var(--border); }
-.section-sep-label {
-  font-family: 'Barlow Condensed', sans-serif;
-  font-size: 11px;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  color: var(--text3);
-  white-space: nowrap;
-}
-
-/* RESPONSIVE */
-@media (max-width: 768px) {
-  #header { padding: 0 14px; height: 50px; }
-  .logo-text { font-size: 14px; }
-  #record-count-badge { display: none; }
-  #main { padding: 14px; }
-  #kpi-row { grid-template-columns: repeat(2, 1fr); }
-  .kpi-value { font-size: 28px; }
-  .grid-2, .grid-3 { grid-template-columns: 1fr; }
-  #filter-bar { gap: 8px; }
-  .filter-group { min-width: 100%; }
-  #map-container { height: 350px; }
-}
-@media (max-width: 480px) {
-  #kpi-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .kpi-card { padding: 14px; }
-  .kpi-value { font-size: 24px; }
-}
-
-/* Animated entry */
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(16px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.kpi-card, .chart-card { animation: fadeUp 0.4s ease both; }
-.kpi-card:nth-child(1) { animation-delay: 0.05s; }
-.kpi-card:nth-child(2) { animation-delay: 0.1s; }
-.kpi-card:nth-child(3) { animation-delay: 0.15s; }
-.kpi-card:nth-child(4) { animation-delay: 0.2s; }
-.kpi-card:nth-child(5) { animation-delay: 0.25s; }
-.kpi-card:nth-child(6) { animation-delay: 0.3s; }
-
-.tooltip-dark {
-  background: var(--card2) !important;
-  border: 1px solid var(--border2) !important;
-  color: var(--text) !important;
-  font-family: 'IBM Plex Mono', monospace !important;
-  font-size: 11px !important;
-  border-radius: 6px !important;
-  padding: 8px 12px !important;
-}
-
-/* Error box */
-.error-box {
-  background: rgba(255,82,82,0.08);
-  border: 1px solid rgba(255,82,82,0.3);
-  border-radius: 8px;
-  padding: 16px 20px;
-  color: var(--red);
-  font-family: 'IBM Plex Mono', monospace;
-  font-size: 12px;
-  margin-bottom: 16px;
-}
+/* Responsive */
+@media(max-width:768px){#hdr{padding:0 12px;height:48px}.lname{font-size:13px}#hcnt{display:none}#main{padding:12px}#kpis{grid-template-columns:repeat(2,1fr)}.kv{font-size:26px}.g2,.g3{grid-template-columns:1fr}#permit-map{height:360px}}
+@media(max-width:440px){#kpis{gap:8px}.kpi{padding:12px}.kv{font-size:22px}}
 </style>
 </head>
 <body>
 
-<!-- Loading Screen -->
-<div id="loading-screen">
-  <div class="loader-ring"></div>
-  <div id="loading-msg">INITIALIZING DATA PIPELINE...</div>
-  <div class="loader-bar">
-    <div class="loader-fill" id="loader-fill"></div>
+<div id="ls">
+  <div class="lhex"></div>
+  <div id="lmsg">CONNECTING TO DATA SOURCE...</div>
+  <div class="lbar"><div class="lfill" id="lfill"></div></div>
+  <div id="lsub">github.com/kkpatel911/CHAPermitData</div>
+</div>
+
+<div id="hdr">
+  <div class="logo"><div class="lhex2"></div><div class="lname">CHA<span>PERMITS</span></div></div>
+  <div class="hright">
+    <div id="hcnt">—</div>
+    <div id="spill"><div id="sdot"></div><span id="stxt">LOADING</span></div>
   </div>
 </div>
 
-<!-- Header -->
-<div id="header">
-  <div class="logo">
-    <div class="logo-icon"></div>
-    <div class="logo-text">CHATTA<span>DATA</span> · PERMITS</div>
-  </div>
-  <div class="header-right">
-    <div id="record-count-badge">— records loaded</div>
-    <div id="status-pill">
-      <div id="status-dot"></div>
-      <span id="status-text">LOADING</span>
-    </div>
-  </div>
+<div id="nav">
+  <button class="tab active" data-tab="overview">⬡ Overview</button>
+  <button class="tab" data-tab="analytics">⬢ Analytics</button>
+  <button class="tab" data-tab="timeline">◈ Timeline</button>
+  <button class="tab" data-tab="map">◉ Map</button>
+  <button class="tab" data-tab="data">≡ Data</button>
 </div>
 
-<!-- Nav Tabs -->
-<div id="nav-tabs">
-  <button class="tab-btn active" data-tab="overview">
-    <span class="tab-icon">◎</span> Overview
-  </button>
-  <button class="tab-btn" data-tab="analytics">
-    <span class="tab-icon">▦</span> Analytics
-  </button>
-  <button class="tab-btn" data-tab="timeline">
-    <span class="tab-icon">◈</span> Timeline
-  </button>
-  <button class="tab-btn" data-tab="map">
-    <span class="tab-icon">◉</span> Map
-  </button>
-  <button class="tab-btn" data-tab="data">
-    <span class="tab-icon">≡</span> Raw Data
-  </button>
-</div>
-
-<!-- Main Content -->
 <div id="main">
-
-  <!-- Upload Fallback -->
-  <div id="upload-zone" onclick="document.getElementById('csv-input').click()"
-    ondragover="this.classList.add('drag-over');event.preventDefault()"
-    ondragleave="this.classList.remove('drag-over')"
-    ondrop="handleDrop(event)">
-    <div class="upload-icon">📂</div>
-    <div class="upload-title">Drop CSV File Here</div>
-    <div class="upload-sub">
-      Auto-fetch failed. Download the CSV from<br>
-      <a href="https://www.arcgis.com/sharing/rest/content/items/9937e99e93de467eae5f592061c2672c/data"
-         style="color:var(--accent)" target="_blank">ArcGIS Portal</a>
-      and drop it here.
-    </div>
-    <button class="upload-btn">Browse File</button>
-    <input type="file" id="csv-input" accept=".csv" style="display:none" onchange="loadFile(this.files[0])">
+  <div id="uz" onclick="document.getElementById('cfi').click()" ondragover="event.preventDefault();this.classList.add('dov')" ondragleave="this.classList.remove('dov')" ondrop="doDrop(event)">
+    <div class="uico">📂</div>
+    <div class="utit">Load Permits CSV</div>
+    <div class="usub">Download the file from <a href="https://github.com/kkpatel911/CHAPermitData/raw/main/public_all_permits_daily.csv" style="color:var(--accent)" target="_blank">GitHub</a> and drop it here, or click Browse.</div>
+    <button class="ubtn">Browse CSV</button>
+    <input type="file" id="cfi" accept=".csv" style="display:none" onchange="loadFile(this.files[0])">
   </div>
 
-  <!-- OVERVIEW TAB -->
-  <div class="tab-view active" id="tab-overview">
-    <div id="kpi-row">
-      <div class="kpi-card blue">
-        <div class="kpi-label">Total Permits</div>
-        <div class="kpi-value" id="kpi-total">—</div>
-        <div class="kpi-sub">All records</div>
-      </div>
-      <div class="kpi-card green">
-        <div class="kpi-label">Issued</div>
-        <div class="kpi-value" id="kpi-issued">—</div>
-        <div class="kpi-sub" id="kpi-issued-pct">—</div>
-      </div>
-      <div class="kpi-card yellow">
-        <div class="kpi-label">Pending</div>
-        <div class="kpi-value" id="kpi-pending">—</div>
-        <div class="kpi-sub">Open applications</div>
-      </div>
-      <div class="kpi-card red">
-        <div class="kpi-label">Expired</div>
-        <div class="kpi-value" id="kpi-expired">—</div>
-        <div class="kpi-sub">Lapsed permits</div>
-      </div>
-      <div class="kpi-card purple">
-        <div class="kpi-label">Permit Types</div>
-        <div class="kpi-value" id="kpi-types">—</div>
-        <div class="kpi-sub">Unique categories</div>
-      </div>
-      <div class="kpi-card orange">
-        <div class="kpi-label">This Year</div>
-        <div class="kpi-value" id="kpi-thisyear">—</div>
-        <div class="kpi-sub" id="kpi-year-label">—</div>
-      </div>
+  <!-- OVERVIEW -->
+  <div class="tv active" id="tab-overview">
+    <div id="kpis">
+      <div class="kpi c0"><div class="kl">Total Permits</div><div class="kv" id="k0">—</div><div class="ks">All records</div></div>
+      <div class="kpi c1"><div class="kl">Issued / Active</div><div class="kv" id="k1">—</div><div class="ks" id="k1s">—</div></div>
+      <div class="kpi c2"><div class="kl">Pending / Open</div><div class="kv" id="k2">—</div><div class="ks">In progress</div></div>
+      <div class="kpi c3"><div class="kl">Expired / Void</div><div class="kv" id="k3">—</div><div class="ks">Lapsed</div></div>
+      <div class="kpi c4"><div class="kl">Permit Types</div><div class="kv" id="k4">—</div><div class="ks">Unique categories</div></div>
+      <div class="kpi c5"><div class="kl">This Year</div><div class="kv" id="k5">—</div><div class="ks" id="k5s">—</div></div>
     </div>
-
-    <div class="chart-grid grid-2">
-      <div class="chart-card">
-        <div class="chart-title">Permits by Type <span class="chart-title-badge">TOP 12</span></div>
-        <div class="chart-wrap"><canvas id="chart-by-type" height="300"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-title">Status Distribution <span class="chart-title-badge">DONUT</span></div>
-        <div class="chart-wrap"><canvas id="chart-status" height="300"></canvas></div>
-      </div>
+    <div class="g2">
+      <div class="cc"><div class="ct">Permits by Type <span class="cb">TOP 12</span></div><div class="cw"><canvas id="c-type" height="300"></canvas></div></div>
+      <div class="cc"><div class="ct">Status Distribution <span class="cb">DONUT</span></div><div class="cw"><canvas id="c-stat" height="300"></canvas></div></div>
     </div>
-
-    <div class="section-sep">
-      <div class="section-sep-line"></div>
-      <div class="section-sep-label">Category Deep-Dive</div>
-      <div class="section-sep-line"></div>
-    </div>
-
-    <div class="chart-grid grid-2">
-      <div class="chart-card">
-        <div class="chart-title">Monthly Permit Volume <span class="chart-title-badge">12 MO</span></div>
-        <div class="chart-wrap"><canvas id="chart-monthly" height="240"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-title">Permits by Work Type <span class="chart-title-badge">BAR</span></div>
-        <div class="chart-wrap"><canvas id="chart-worktype" height="240"></canvas></div>
-      </div>
+    <div class="g2">
+      <div class="cc"><div class="ct">Monthly Volume (Last 12 mo) <span class="cb">BAR</span></div><div class="cw"><canvas id="c-mon" height="240"></canvas></div></div>
+      <div class="cc"><div class="ct">Permits by Work Category <span class="cb">BAR</span></div><div class="cw"><canvas id="c-work" height="240"></canvas></div></div>
     </div>
   </div>
 
-  <!-- ANALYTICS TAB -->
-  <div class="tab-view" id="tab-analytics">
-    <div class="chart-grid grid-2" style="margin-bottom:20px">
-      <div class="chart-card">
-        <div class="chart-title">Annual Permit Trends <span class="chart-title-badge">YEAR-OVER-YEAR</span></div>
-        <div class="chart-wrap"><canvas id="chart-annual" height="280"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-title">Permits by Month of Year <span class="chart-title-badge">SEASONALITY</span></div>
-        <div class="chart-wrap"><canvas id="chart-season" height="280"></canvas></div>
-      </div>
+  <!-- ANALYTICS -->
+  <div class="tv" id="tab-analytics">
+    <div class="g2">
+      <div class="cc"><div class="ct">Annual Trends <span class="cb">YoY LINE</span></div><div class="cw"><canvas id="c-ann" height="280"></canvas></div></div>
+      <div class="cc"><div class="ct">Seasonal Pattern <span class="cb">MONTHLY</span></div><div class="cw"><canvas id="c-sea" height="280"></canvas></div></div>
     </div>
-    <div class="chart-grid grid-1" style="margin-bottom:20px">
-      <div class="chart-card">
-        <div class="chart-title">Top Contractors by Permit Count <span class="chart-title-badge">TOP 15</span></div>
-        <div class="chart-wrap"><canvas id="chart-contractors" height="260"></canvas></div>
-      </div>
+    <div class="g1">
+      <div class="cc"><div class="ct">Top 15 Contractors / Applicants <span class="cb">RANKED</span></div><div class="cw"><canvas id="c-con" height="260"></canvas></div></div>
     </div>
-    <div class="chart-grid grid-2">
-      <div class="chart-card">
-        <div class="chart-title">Permits by Zip Code <span class="chart-title-badge">GEO</span></div>
-        <div class="chart-wrap"><canvas id="chart-zip" height="260"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-title">Status by Permit Type <span class="chart-title-badge">STACKED</span></div>
-        <div class="chart-wrap"><canvas id="chart-stacked" height="260"></canvas></div>
-      </div>
+    <div class="g2">
+      <div class="cc"><div class="ct">Top Zip Codes <span class="cb">GEO</span></div><div class="cw"><canvas id="c-zip" height="260"></canvas></div></div>
+      <div class="cc"><div class="ct">Status × Type <span class="cb">STACKED</span></div><div class="cw"><canvas id="c-stk" height="260"></canvas></div></div>
     </div>
-    <div class="section-sep">
-      <div class="section-sep-line"></div>
-      <div class="section-sep-label">D3 Treemap — Permit Type Distribution</div>
-      <div class="section-sep-line"></div>
+    <div class="sep"><div class="sl"></div><div class="slb">D3 Treemap — Volume by Permit Type</div><div class="sl"></div></div>
+    <div class="cc"><div class="ct">Treemap <span class="cb">D3</span></div><div id="tmwrap"></div></div>
+  </div>
+
+  <!-- TIMELINE -->
+  <div class="tv" id="tab-timeline">
+    <div class="cc" style="margin-bottom:18px"><div class="ct">Permits Over Time <span class="cb">D3 AREA</span></div><div id="tlwrap"></div></div>
+    <div class="g2">
+      <div class="cc"><div class="ct">Day-of-Week <span class="cb">POLAR</span></div><div class="cw"><canvas id="c-dow" height="300"></canvas></div></div>
+      <div class="cc"><div class="ct">Quarterly Volumes <span class="cb">LINE</span></div><div class="cw"><canvas id="c-qtr" height="300"></canvas></div></div>
     </div>
-    <div class="chart-card">
-      <div class="chart-title">Treemap — Volume by Permit Type</div>
-      <div id="treemap-wrap"></div>
+    <div class="cc" style="margin-top:18px"><div class="ct">Activity Heatmap — Month × Year <span class="cb">D3</span></div><div id="hmwrap"></div></div>
+  </div>
+
+  <!-- MAP -->
+  <div class="tv" id="tab-map">
+    <div id="mapc">
+      <div id="maptb">
+        <div class="maptitle">📍 Permit Locations — Chattanooga, TN</div>
+        <div id="mapstats">
+          <div class="ms">Plotted: <span id="ms1">—</span></div>
+          <div class="ms">W/ Coords: <span id="ms2">—</span></div>
+          <div class="ms">Source: <span id="ms3">detecting...</span></div>
+        </div>
+      </div>
+      <div id="permit-map"></div>
+      <div id="maplegend">
+        <div class="li"><div class="ld" style="background:#00e676"></div>Issued / Active / Final</div>
+        <div class="li"><div class="ld" style="background:#ffd740"></div>Pending / In Review</div>
+        <div class="li"><div class="ld" style="background:#ff5252"></div>Expired / Void / Cancelled</div>
+        <div class="li"><div class="ld" style="background:#00d4ff"></div>Other / Unknown</div>
+      </div>
+      <div id="mapinfo">Loading permit data...</div>
     </div>
   </div>
 
-  <!-- TIMELINE TAB -->
-  <div class="tab-view" id="tab-timeline">
-    <div class="chart-card" style="margin-bottom:20px">
-      <div class="chart-title">Permits Issued Over Time <span class="chart-title-badge">D3 AREA</span></div>
-      <div id="timeline-wrap"></div>
+  <!-- DATA -->
+  <div class="tv" id="tab-data">
+    <div id="fb">
+      <div class="fg"><div class="fl">Search</div><input class="fs" id="fs0" type="text" placeholder="Address, permit #, type..." oninput="applyF()"></div>
+      <div class="fg"><div class="fl">Permit Type</div><select class="fs" id="fs1" onchange="applyF()"><option value="">All Types</option></select></div>
+      <div class="fg"><div class="fl">Status</div><select class="fs" id="fs2" onchange="applyF()"><option value="">All Statuses</option></select></div>
+      <div class="fg"><div class="fl">Year</div><select class="fs" id="fs3" onchange="applyF()"><option value="">All Years</option></select></div>
     </div>
-    <div class="chart-grid grid-2">
-      <div class="chart-card">
-        <div class="chart-title">Day of Week Distribution <span class="chart-title-badge">POLAR</span></div>
-        <div class="chart-wrap"><canvas id="chart-dow" height="300"></canvas></div>
-      </div>
-      <div class="chart-card">
-        <div class="chart-title">Quarterly Permits (All Years) <span class="chart-title-badge">LINE</span></div>
-        <div class="chart-wrap"><canvas id="chart-quarterly" height="300"></canvas></div>
-      </div>
-    </div>
-    <div class="chart-card" style="margin-top:20px">
-      <div class="chart-title">Activity Heatmap — Month × Year <span class="chart-title-badge">D3 HEATMAP</span></div>
-      <div id="heatmap-wrap"></div>
-    </div>
+    <div id="tw"><table id="dt"><thead id="dth"></thead><tbody id="dtb"></tbody></table></div>
+    <div id="pg"><div class="pi" id="pi">—</div><div class="pbs" id="pbs"></div></div>
   </div>
-
-  <!-- MAP TAB -->
-  <div class="tab-view" id="tab-map">
-    <div id="map-error" class="error-box" style="display:none"></div>
-    <div class="chart-card" style="padding:12px">
-      <div id="map-container">
-        <div id="permit-map"></div>
-      </div>
-    </div>
-    <div style="margin-top:12px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text3); text-align:center;">
-      Map shows permit locations where lat/lng coordinates are available in the dataset.
-    </div>
-  </div>
-
-  <!-- DATA TAB -->
-  <div class="tab-view" id="tab-data">
-    <div id="filter-bar">
-      <div class="filter-group">
-        <div class="filter-label">Search</div>
-        <input class="filter-input" id="search-input" type="text" placeholder="Permit #, address, type..." oninput="applyFilters()">
-      </div>
-      <div class="filter-group">
-        <div class="filter-label">Permit Type</div>
-        <select class="filter-select" id="filter-type" onchange="applyFilters()">
-          <option value="">All Types</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <div class="filter-label">Status</div>
-        <select class="filter-select" id="filter-status" onchange="applyFilters()">
-          <option value="">All Statuses</option>
-        </select>
-      </div>
-      <div class="filter-group">
-        <div class="filter-label">Year</div>
-        <select class="filter-select" id="filter-year" onchange="applyFilters()">
-          <option value="">All Years</option>
-        </select>
-      </div>
-    </div>
-    <div id="table-wrap">
-      <table id="data-table">
-        <thead id="table-head"></thead>
-        <tbody id="table-body"></tbody>
-      </table>
-    </div>
-    <div id="pagination">
-      <div class="page-info" id="page-info">—</div>
-      <div class="page-btns" id="page-btns"></div>
-    </div>
-  </div>
-
-</div><!-- /main -->
+</div>
 
 <script>
-// ============================================================
-// GLOBAL STATE
-// ============================================================
-let allData = [];
-let filteredData = [];
-let currentPage = 1;
-const PAGE_SIZE = 50;
-let sortCol = null;
-let sortDir = 1;
-let charts = {};
-let mapInstance = null;
-let mapMarkers = null;
+// ─── STATE ───
+let ALL=[], FIL=[], COL={};
+let pg=1, PG=50, sK=null, sD=1;
+let CH={}, mapL=null, CG=null;
+const CHN=[35.0456,-85.3097];
 
-// ============================================================
-// DATA FETCHING — try multiple URLs
-// ============================================================
-const DATA_URLS = [
+// ─── LOAD ───
+const SRCS=[
+  'https://raw.githubusercontent.com/kkpatel911/CHAPermitData/main/public_all_permits_daily.csv',
+  'https://raw.githubusercontent.com/kkpatel911/CHAPermitData/refs/heads/main/public_all_permits_daily.csv',
   'https://opendata.arcgis.com/datasets/9937e99e93de467eae5f592061c2672c_0.csv',
-  'https://hub.arcgis.com/api/v3/datasets/9937e99e93de467eae5f592061c2672c_0/downloads/data?format=csv&spatialRefId=4326',
 ];
-
-async function fetchData() {
-  setLoader(10, 'LOCATING DATA SOURCE...');
-  for (let i = 0; i < DATA_URLS.length; i++) {
-    try {
-      setLoader(20 + i*15, `ATTEMPTING SOURCE ${i+1}/${DATA_URLS.length}...`);
-      const resp = await fetch(DATA_URLS[i]);
-      if (!resp.ok) continue;
-      const text = await resp.text();
-      if (!text || text.length < 100) continue;
-      setLoader(60, 'PARSING CSV...');
-      const parsed = Papa.parse(text, { header: true, skipEmptyLines: true, dynamicTyping: false });
-      if (parsed.data && parsed.data.length > 0) {
-        setLoader(80, 'BUILDING VISUALIZATIONS...');
-        return parsed.data;
+async function init(){
+  lp(5,'CONNECTING TO GITHUB...');
+  for(let i=0;i<SRCS.length;i++){
+    try{
+      lp(10+i*18,`FETCHING SOURCE ${i+1}/${SRCS.length}...`);
+      const r=await fetch(SRCS[i]);
+      if(!r.ok){console.warn('HTTP',r.status,SRCS[i]);continue;}
+      lp(55,'DOWNLOADING CSV...');
+      const txt=await r.text();
+      if(!txt||txt.length<200)continue;
+      lp(72,'PARSING...');
+      const p=Papa.parse(txt,{header:true,skipEmptyLines:true,dynamicTyping:false});
+      if(p.data?.length>0){
+        lp(88,'BUILDING DASHBOARD...');
+        ALL=p.data; FIL=[...ALL];
+        setTimeout(()=>{hideL();build();},200);
+        return;
       }
-    } catch(e) { console.warn('Source', i+1, 'failed:', e); }
+    }catch(e){console.warn('Src',i+1,e);}
   }
+  hideL(); showU();
+}
+function lp(pct,msg){document.getElementById('lfill').style.width=pct+'%';document.getElementById('lmsg').textContent=msg;}
+function hideL(){const e=document.getElementById('ls');e.style.transition='opacity .4s';e.style.opacity='0';setTimeout(()=>e.style.display='none',450);}
+function showU(){document.getElementById('uz').style.display='flex';setS('OFFLINE','var(--red)');}
+function setS(t,c){document.getElementById('stxt').textContent=t;document.getElementById('sdot').style.background=c;}
+function doDrop(e){e.preventDefault();e.currentTarget.classList.remove('dov');if(e.dataTransfer.files[0])loadFile(e.dataTransfer.files[0]);}
+function loadFile(f){
+  if(!f)return;
+  const ls=document.getElementById('ls');ls.style.display='flex';ls.style.opacity='1';
+  lp(20,'READING FILE...');
+  Papa.parse(f,{header:true,skipEmptyLines:true,complete(r){
+    if(r.data?.length>0){ALL=r.data;FIL=[...ALL];document.getElementById('uz').style.display='none';lp(75,'BUILDING...');setTimeout(()=>{hideL();build();},200);}
+  }});
+}
+
+// ─── COLUMN DETECTION ───
+function dc(){
+  if(!ALL.length)return;
+  const ks=Object.keys(ALL[0]);
+  const f=(ps)=>{for(const p of ps){const k=ks.find(k=>k.toLowerCase().replace(/[\s_\-]/g,'').includes(p.toLowerCase().replace(/[\s_\-]/g,'')));if(k)return k;}return null;};
+  COL.permitNo = f(['PermitNo','PermitNumber','permit_num','permit_id','CaseNo','CASENO','PERMITNO','OBJECTID']);
+  COL.type     = f(['PermitType','PERMITTYPE','permit_type','Type','Category','PermitCat','WorkType','WORKTYPE']);
+  COL.status   = f(['StatusDesc','STATUSDESC','Status','STATUS','PermitStatus','permit_status']);
+  COL.date     = f(['IssueDate','ISSUEDATE','issue_date','DateIssued','AppliedDate','APPLIEDDATE','IssuedDate','OpenDate','Date','Created']);
+  COL.address  = f(['SiteAddress','SITEADDRESS','site_address','Address','ADDRESS','Location','PropAddress']);
+  COL.contractor=f(['ContractorName','CONTRACTORNAME','contractor_name','Contractor','CONTRACTOR','Applicant','APPLICANT']);
+  COL.zip      = f(['ZipCode','ZIPCODE','zip_code','Zip','ZIP','PostalCode']);
+  COL.workDesc = f(['WorkDesc','WORKDESC','work_desc','Description','DESCRIPTION','WorkType','WORKTYPE','Desc']);
+  COL.valuation= f(['Valuation','VALUATION','ProjectValue','project_value','EstValue','Value','Cost']);
+
+  // ── COORDINATES: try all known patterns ──
+  // Direct lat col
+  const latCol = f(['Latitude','LATITUDE','Lat','LAT','lat','Y_COORD','POINT_Y','y_coord','ylat','YLAT']);
+  const lngCol = f(['Longitude','LONGITUDE','Lon','LON','lon','Long','LONG','lng','LNG','X_COORD','POINT_X','x_coord','xlon','XLON']);
+  // Generic X/Y (ArcGIS export)
+  const xCol = f(['X','x']);
+  const yCol = f(['Y','y']);
+  // geometry WKT
+  COL.geom = f(['geometry','GEOMETRY','geom','GEOM','Shape','SHAPE','the_geom','WKT','wkt','GLOBALID']);
+
+  // Determine best lat/lng from real sample values
+  function testPair(la,lo){
+    if(!la||!lo)return false;
+    const smp=ALL.slice(0,100).find(r=>r[la]&&r[lo]);
+    if(!smp)return false;
+    const a=parseFloat(smp[la]),b=parseFloat(smp[lo]);
+    if(isNaN(a)||isNaN(b))return false;
+    // standard order: lat≈35, lng≈-85
+    if(a>30&&a<40&&b<-80&&b>-90){COL.lat=la;COL.lng=lo;return true;}
+    // swapped
+    if(b>30&&b<40&&a<-80&&a>-90){COL.lat=lo;COL.lng=la;return true;}
+    return false;
+  }
+  testPair(latCol,lngCol) || testPair(yCol,xCol) || testPair(xCol,yCol);
+
+  // Validate geometry has real WKT
+  if(COL.geom){
+    const smp=ALL.slice(0,20).find(r=>r[COL.geom]&&/POINT/i.test(String(r[COL.geom])));
+    if(!smp)COL.geom=null;
+  }
+  console.log('COL:',COL);
+  console.log('All keys:',Object.keys(ALL[0]));
+}
+
+// ─── EXTRACT COORDS from one row ───
+function gc(r){
+  // 1. direct lat/lng
+  if(COL.lat&&COL.lng){
+    const la=parseFloat(r[COL.lat]),lo=parseFloat(r[COL.lng]);
+    if(!isNaN(la)&&!isNaN(lo)){
+      if(la>30&&la<40&&lo<-80&&lo>-90)return[la,lo];
+      if(lo>30&&lo<40&&la<-80&&la>-90)return[lo,la];
+    }
+  }
+  // 2. WKT geometry: "POINT (-85.3 35.04)" or "POINT(-85.3 35.04)"
+  if(COL.geom&&r[COL.geom]){
+    const m=String(r[COL.geom]).match(/POINT\s*\(\s*([-\d.]+)\s+([-\d.]+)\s*\)/i);
+    if(m){const a=parseFloat(m[1]),b=parseFloat(m[2]);
+      if(b>30&&b<40&&a<-80&&a>-90)return[b,a];
+      if(a>30&&a<40&&b<-80&&b>-90)return[a,b];
+    }
+  }
+  // 3. Scan every numeric column for Chattanooga-range values
+  const keys=Object.keys(r);
+  let la=null,lo=null;
+  for(const k of keys){
+    const v=parseFloat(r[k]);
+    if(isNaN(v))continue;
+    if(v>34.8&&v<35.4&&la===null)la=v;
+    if(v>-85.6&&v<-84.8&&lo===null)lo=v;
+  }
+  if(la!==null&&lo!==null)return[la,lo];
   return null;
 }
 
-function setLoader(pct, msg) {
-  document.getElementById('loader-fill').style.width = pct + '%';
-  document.getElementById('loading-msg').textContent = msg;
+// ─── STATUS COLOR ───
+function sc(s){
+  if(!s)return'#00d4ff';
+  const sl=s.toLowerCase();
+  if(/issued|active|final|complet|approved|closed|permit issued/.test(sl))return'#00e676';
+  if(/pend|review|open|submit|progress|intake|hold|applied/.test(sl))return'#ffd740';
+  if(/void|cancel|expir|laps|revok|inactive|denied|rejected/.test(sl))return'#ff5252';
+  return'#00d4ff';
+}
+function scc(s){
+  if(!s)return'so';const sl=s.toLowerCase();
+  if(/issued|active|final|complet|approved|closed/.test(sl))return'si';
+  if(/pend|review|open|submit|progress|intake|hold/.test(sl))return'sp';
+  if(/void|cancel|expir|laps|revok/.test(sl))return'se';
+  return'so';
 }
 
-async function init() {
-  setLoader(5, 'CONNECTING TO ARCGIS HUB...');
-  const data = await fetchData();
-  if (!data || data.length === 0) {
-    hideLoading();
-    showUpload();
+// ─── BUILD ALL ───
+function build(){
+  dc();
+  document.getElementById('hcnt').textContent=ALL.length.toLocaleString()+' records';
+  setS('LIVE','var(--green)');
+  buildKPIs(); buildFilters(); buildTableHead(); applyF();
+  setTimeout(buildCharts,150);
+  // build map regardless of active tab
+  setTimeout(initMap,300);
+}
+
+// ─── KPIs ───
+function buildKPIs(){
+  const n=ALL.length;
+  const sc2=cntBy(ALL,COL.status);
+  const iss=sumLike(sc2,['issued','active','final','complet','approved','closed','permit issued']);
+  const pen=sumLike(sc2,['pend','review','open','submit','progress','intake','hold','applied']);
+  const exp=sumLike(sc2,['void','cancel','expir','laps','revok','inactive']);
+  const types=COL.type?new Set(ALL.map(r=>r[COL.type]).filter(Boolean)).size:'—';
+  const yr=new Date().getFullYear();
+  const tyr=COL.date?ALL.filter(r=>{const d=pd(r[COL.date]);return d&&d.getFullYear()===yr;}).length:0;
+  set('k0',fmt(n));set('k1',fmt(iss));set('k1s',n?pct(iss/n)+' of total':'—');
+  set('k2',fmt(pen));set('k3',fmt(exp));set('k4',types);set('k5',fmt(tyr));set('k5s','in '+yr);
+}
+
+// ─── MAP ───
+function initMap(){
+  if(!mapL){
+    mapL=L.map('permit-map',{preferCanvas:true}).setView(CHN,12);
+    // Dark CartoDB tile
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{attribution:'©OpenStreetMap ©CartoDB',subdomains:'abcd',maxZoom:19}).addTo(mapL);
+  }
+  plotPts();
+}
+
+function plotPts(){
+  const info=document.getElementById('mapinfo');
+  const ms3=document.getElementById('ms3');
+
+  // Describe coord source
+  if(COL.lat&&COL.lng)ms3.textContent=`${COL.lat} / ${COL.lng}`;
+  else if(COL.geom)ms3.textContent=`geom (${COL.geom})`;
+  else ms3.textContent='scanning columns...';
+
+  // Quick sample check
+  const sample=ALL.slice(0,100);
+  const testPts=sample.map(gc).filter(Boolean);
+
+  if(testPts.length===0){
+    const allK=ALL.length?Object.keys(ALL[0]):[];
+    info.className='warn';
+    info.innerHTML=`⚠ No Chattanooga-area coordinates found in first 100 rows.<br>
+    <b>All columns in dataset:</b> ${allK.join(', ')}<br>
+    Typical ArcGIS export has: <b>X</b> (lng≈-85), <b>Y</b> (lat≈35), or <b>geometry</b> (POINT(lng lat)), or <b>Latitude/Longitude</b>.`;
+    document.getElementById('ms1').textContent='0';
+    document.getElementById('ms2').textContent='0';
     return;
   }
-  allData = data;
-  filteredData = [...allData];
-  hideLoading();
-  buildDashboard();
-}
 
-function hideLoading() {
-  const ls = document.getElementById('loading-screen');
-  ls.style.opacity = '0';
-  ls.style.transition = 'opacity 0.4s';
-  setTimeout(() => ls.style.display = 'none', 400);
-}
-function showUpload() {
-  document.getElementById('upload-zone').style.display = 'flex';
-  document.getElementById('status-text').textContent = 'OFFLINE';
-  document.getElementById('status-dot').style.background = 'var(--red)';
-}
-
-// ============================================================
-// FILE UPLOAD FALLBACK
-// ============================================================
-function handleDrop(e) {
-  e.preventDefault();
-  e.currentTarget.classList.remove('drag-over');
-  const file = e.dataTransfer.files[0];
-  if (file) loadFile(file);
-}
-function loadFile(file) {
-  if (!file) return;
-  document.getElementById('loading-screen').style.display = 'flex';
-  document.getElementById('loading-screen').style.opacity = '1';
-  setLoader(20, 'READING FILE...');
-  Papa.parse(file, {
-    header: true,
-    skipEmptyLines: true,
-    complete: (r) => {
-      if (r.data && r.data.length > 0) {
-        allData = r.data;
-        filteredData = [...allData];
-        document.getElementById('upload-zone').style.display = 'none';
-        setLoader(70, 'BUILDING VISUALIZATIONS...');
-        setTimeout(() => { hideLoading(); buildDashboard(); }, 200);
-      }
+  if(CG){mapL.removeLayer(CG);}
+  CG=L.markerClusterGroup({
+    chunkedLoading:true,maxClusterRadius:50,
+    spiderfyOnMaxZoom:true,showCoverageOnHover:false,zoomToBoundsOnClick:true,
+    iconCreateFunction(cluster){
+      const n=cluster.getChildCount();
+      const sz=n>500?46:n>100?38:30;
+      const op=n>500?.7:n>100?.55:.45;
+      return L.divIcon({
+        html:`<div style="width:${sz}px;height:${sz}px;border-radius:50%;background:rgba(0,212,255,${op});display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:${n>9999?9:n>999?10:11}px;font-weight:700;color:#000033;border:2px solid rgba(0,212,255,.85);box-shadow:0 0 12px rgba(0,212,255,.35)">${n>9999?(n/1000).toFixed(1)+'k':n}</div>`,
+        className:'',iconSize:[sz,sz],iconAnchor:[sz/2,sz/2]
+      });
     }
+  });
+
+  const rows=ALL.length>30000?ALL.slice(0,30000):ALL;
+  let plotted=0,wc=0;
+
+  rows.forEach(r=>{
+    const pt=gc(r);if(!pt)return;
+    wc++;
+    const color=sc(r[COL.status]);
+    const m=L.circleMarker(pt,{radius:5,color:color,fillColor:color,fillOpacity:.75,weight:0});
+    // Build popup
+    const lines=[];
+    if(COL.permitNo&&r[COL.permitNo])lines.push(`<b style="color:#00d4ff">#${r[COL.permitNo]}</b>`);
+    if(COL.type&&r[COL.type])lines.push(`<span style="color:#e2e8f8">${r[COL.type]}</span>`);
+    if(COL.status&&r[COL.status])lines.push(`<span style="color:${color}">● ${r[COL.status]}</span>`);
+    if(COL.address&&r[COL.address])lines.push(`<span style="color:#7a8aaa">${r[COL.address]}</span>`);
+    if(COL.date&&r[COL.date])lines.push(`<span style="color:#3a4a66">${r[COL.date]}</span>`);
+    if(COL.contractor&&r[COL.contractor])lines.push(`<span style="color:#3a4a66">${r[COL.contractor]}</span>`);
+    if(lines.length)m.bindPopup(lines.join('<br>'),{maxWidth:260});
+    CG.addLayer(m);plotted++;
+  });
+
+  CG.addTo(mapL);
+  document.getElementById('ms1').textContent=plotted.toLocaleString();
+  document.getElementById('ms2').textContent=wc.toLocaleString();
+
+  if(plotted>0){
+    info.className='ok';
+    info.textContent=`✓ ${plotted.toLocaleString()} permits plotted${ALL.length>30000?' (first 30K for performance, full dataset: '+ALL.length.toLocaleString()+')':''}. Zoom & click for details.`;
+    try{mapL.fitBounds(CG.getBounds(),{padding:[30,30]});}catch(e){}
+  }else{
+    info.className='warn';
+    info.textContent='⚠ Coordinates found in column headers but no valid points rendered. Inspect console for column details.';
+  }
+}
+
+// ─── CHARTS ───
+const PAL=['#00d4ff','#00e676','#ffd740','#ff5252','#e040fb','#ff9100','#40c4ff','#69f0ae','#ffff00','#ff6e40','#ea80fc','#b2ff59','#80d8ff','#a7ffeb','#1de9b6','#f48fb1','#ffe57f','#ff9e80'];
+function mk(id,cfg){
+  const el=document.getElementById(id);if(!el)return;
+  if(CH[id])CH[id].destroy();
+  Chart.defaults.color='#7a8aaa';Chart.defaults.borderColor='#1c2840';
+  Chart.defaults.font.family="'IBM Plex Mono',monospace";Chart.defaults.font.size=10;
+  CH[id]=new Chart(el,cfg);
+}
+const SX={x:{grid:{color:'#1c2840'},ticks:{color:'#3a4a66'}},y:{grid:{color:'#1c2840'},ticks:{color:'#3a4a66'}}};
+
+function buildCharts(){
+  // Overview
+  if(COL.type){const d=topN(cntBy(ALL,COL.type),12);mk('c-type',{type:'bar',data:{labels:d.map(x=>tr(x[0],24)),datasets:[{data:d.map(x=>x[1]),backgroundColor:PAL.slice(0,12).map(c=>c+'88'),borderColor:PAL.slice(0,12),borderWidth:1,borderRadius:3}]},options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false}},scales:{x:SX.x,y:{grid:{display:false},ticks:{color:'#7a8aaa',font:{size:9}}}}}}); }
+  if(COL.status){const d=topN(cntBy(ALL,COL.status),9);mk('c-stat',{type:'doughnut',data:{labels:d.map(x=>x[0]||'?'),datasets:[{data:d.map(x=>x[1]),backgroundColor:PAL.map(c=>c+'bb'),borderColor:'#0d1120',borderWidth:2}]},options:{responsive:true,cutout:'60%',plugins:{legend:{position:'right',labels:{color:'#7a8aaa',boxWidth:10,padding:10}},tooltip:{callbacks:{label:c=>' '+c.raw.toLocaleString()+' ('+pct(c.raw/ALL.length)+')'}}}}});}
+  if(COL.date){
+    const now=new Date();const mos=Array.from({length:12},(_,i)=>{const d=new Date(now.getFullYear(),now.getMonth()-11+i,1);return{label:d.toLocaleString('default',{month:'short',year:'2-digit'}),key:`${d.getFullYear()}-${d.getMonth()}`,n:0};});
+    ALL.forEach(r=>{const d=pd(r[COL.date]);if(!d)return;const k=`${d.getFullYear()}-${d.getMonth()}`;const m=mos.find(x=>x.key===k);if(m)m.n++;});
+    mk('c-mon',{type:'bar',data:{labels:mos.map(m=>m.label),datasets:[{data:mos.map(m=>m.n),backgroundColor:mos.map((_,i)=>i===11?'#00d4ffcc':'#00d4ff33'),borderColor:'#00d4ff',borderWidth:1,borderRadius:4}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:'#3a4a66',font:{size:9}}},y:SX.y}}});
+  }
+  const wc=COL.workDesc||COL.type;if(wc){const d=topN(cntBy(ALL,wc),10);mk('c-work',{type:'bar',data:{labels:d.map(x=>tr(x[0],18)),datasets:[{data:d.map(x=>x[1]),backgroundColor:PAL.slice(0,10).map(c=>c+'66'),borderColor:PAL.slice(0,10),borderWidth:1,borderRadius:3}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:'#3a4a66',font:{size:9},maxRotation:30}},y:SX.y}}});}
+  // Analytics
+  if(COL.date){
+    const yc={};ALL.forEach(r=>{const d=pd(r[COL.date]);if(!d)return;const y=d.getFullYear();if(y<1990||y>2030)return;yc[y]=(yc[y]||0)+1;});const s=Object.entries(yc).sort((a,b)=>a[0]-b[0]);
+    mk('c-ann',{type:'line',data:{labels:s.map(x=>x[0]),datasets:[{label:'Permits',data:s.map(x=>x[1]),borderColor:'#00d4ff',backgroundColor:'rgba(0,212,255,.07)',borderWidth:2,fill:true,tension:.3,pointBackgroundColor:'#00d4ff',pointRadius:3,pointHoverRadius:5}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:SX.x,y:SX.y}}});
+    const mo=Array(12).fill(0);ALL.forEach(r=>{const d=pd(r[COL.date]);if(d)mo[d.getMonth()]++;});
+    mk('c-sea',{type:'bar',data:{labels:['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'],datasets:[{data:mo,backgroundColor:mo.map(v=>{const a=.25+.7*(v/(Math.max(...mo)||1));return`rgba(0,212,255,${a.toFixed(2)})`;} ),borderColor:'#00d4ff',borderWidth:1,borderRadius:3}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:'#3a4a66'}},y:SX.y}}});
+  }
+  if(COL.contractor){const d=topN(cntBy(ALL.filter(r=>r[COL.contractor]?.trim()),COL.contractor),15);if(d.length)mk('c-con',{type:'bar',data:{labels:d.map(x=>tr(x[0],32)),datasets:[{data:d.map(x=>x[1]),backgroundColor:'#00e67633',borderColor:'#00e676',borderWidth:1,borderRadius:3}]},options:{indexAxis:'y',responsive:true,plugins:{legend:{display:false}},scales:{x:SX.x,y:{grid:{display:false},ticks:{color:'#7a8aaa',font:{size:9}}}}}});}
+  if(COL.zip){const d=topN(cntBy(ALL.filter(r=>r[COL.zip]?.trim()),COL.zip),15);if(d.length)mk('c-zip',{type:'bar',data:{labels:d.map(x=>x[0]),datasets:[{data:d.map(x=>x[1]),backgroundColor:'#ffd74033',borderColor:'#ffd740',borderWidth:1,borderRadius:3}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{grid:{display:false},ticks:{color:'#3a4a66'}},y:SX.y}}});}
+  if(COL.type&&COL.status){const tT=topN(cntBy(ALL,COL.type),8).map(x=>x[0]);const sts=[...new Set(ALL.map(r=>r[COL.status]).filter(Boolean))].slice(0,5);mk('c-stk',{type:'bar',data:{labels:tT.map(t=>tr(t,16)),datasets:sts.map((s,i)=>({label:s||'?',data:tT.map(t=>ALL.filter(r=>r[COL.type]===t&&r[COL.status]===s).length),backgroundColor:PAL[i]+'88',borderColor:PAL[i],borderWidth:1}))},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{color:'#7a8aaa',boxWidth:8,padding:8}}},scales:{x:{stacked:true,grid:{display:false},ticks:{color:'#3a4a66',font:{size:8},maxRotation:30}},y:{stacked:true,...SX.y}}}});}
+  // Timeline
+  if(COL.date){
+    const dw=Array(7).fill(0);ALL.forEach(r=>{const d=pd(r[COL.date]);if(d)dw[d.getDay()]++;});
+    mk('c-dow',{type:'polarArea',data:{labels:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],datasets:[{data:dw,backgroundColor:PAL.slice(0,7).map(c=>c+'99'),borderColor:PAL.slice(0,7),borderWidth:1}]},options:{responsive:true,plugins:{legend:{position:'right',labels:{color:'#7a8aaa',boxWidth:8,padding:8}}},scales:{r:{grid:{color:'#1c2840'},ticks:{color:'#3a4a66',backdropColor:'transparent'}}}}});
+    const qc={};ALL.forEach(r=>{const d=pd(r[COL.date]);if(!d)return;const y=d.getFullYear();if(y<1990||y>2030)return;const q=Math.floor(d.getMonth()/3)+1;const k=`${y}Q${q}`;qc[k]=(qc[k]||0)+1;});const qs=Object.entries(qc).sort((a,b)=>a[0]<b[0]?-1:1);
+    mk('c-qtr',{type:'line',data:{labels:qs.map(x=>x[0]),datasets:[{label:'Permits',data:qs.map(x=>x[1]),borderColor:'#e040fb',backgroundColor:'rgba(224,64,251,.07)',borderWidth:2,fill:true,tension:.25,pointRadius:2,pointBackgroundColor:'#e040fb'}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{...SX.x,ticks:{...SX.x.ticks,maxTicksLimit:12,maxRotation:45}},y:SX.y}}});
+  }
+  buildTM(); buildTL(); buildHM();
+}
+
+// ─── D3 Treemap ───
+function buildTM(){
+  if(!COL.type)return;const el=document.getElementById('tmwrap');if(!el)return;
+  const d=topN(cntBy(ALL,COL.type),20);const W=el.clientWidth||760,H=300;el.innerHTML='';
+  const svg=d3.select(el).append('svg').attr('width',W).attr('height',H);
+  const root=d3.hierarchy({children:d.map(([name,value])=>({name,value}))}).sum(d=>d.value);
+  d3.treemap().size([W,H]).padding(2)(root);
+  const cell=svg.selectAll('g').data(root.leaves()).enter().append('g').attr('transform',d=>`translate(${d.x0},${d.y0})`);
+  cell.append('rect').attr('width',d=>Math.max(0,d.x1-d.x0)).attr('height',d=>Math.max(0,d.y1-d.y0)).attr('fill',(_,i)=>PAL[i%PAL.length]+'44').attr('stroke',(_,i)=>PAL[i%PAL.length]).attr('stroke-width',1).attr('rx',3).append('title').text(d=>`${d.data.name}: ${d.data.value.toLocaleString()}`);
+  cell.append('text').attr('x',5).attr('y',14).attr('fill',(_,i)=>PAL[i%PAL.length]).attr('font-size',d=>d.x1-d.x0>80?'10px':'8px').attr('font-family',"'IBM Plex Mono',monospace").text(d=>d.x1-d.x0>50?tr(d.data.name,Math.floor((d.x1-d.x0)/7)):'');
+  cell.append('text').attr('x',5).attr('y',26).attr('fill','#7a8aaa').attr('font-size','9px').attr('font-family',"'IBM Plex Mono',monospace").text(d=>d.x1-d.x0>50?d.data.value.toLocaleString():'');
+}
+
+// ─── D3 Timeline Area ───
+function buildTL(){
+  if(!COL.date)return;const el=document.getElementById('tlwrap');if(!el)return;el.innerHTML='';
+  const mon={};ALL.forEach(r=>{const d=pd(r[COL.date]);if(!d)return;const y=d.getFullYear();if(y<1990||y>2030)return;const k=new Date(y,d.getMonth(),1).getTime();mon[k]=(mon[k]||0)+1;});
+  const data=Object.entries(mon).map(([t,v])=>({date:new Date(+t),count:v})).sort((a,b)=>a.date-b.date);
+  if(!data.length)return;
+  const W=el.clientWidth||760,H=200,mg={t:10,r:20,b:32,l:50};const iW=W-mg.l-mg.r,iH=H-mg.t-mg.b;
+  const svg=d3.select(el).append('svg').attr('width',W).attr('height',H);
+  const g=svg.append('g').attr('transform',`translate(${mg.l},${mg.t})`);
+  const x=d3.scaleTime().domain(d3.extent(data,d=>d.date)).range([0,iW]);
+  const y=d3.scaleLinear().domain([0,d3.max(data,d=>d.count)*1.1]).range([iH,0]);
+  const defs=svg.append('defs');const gr=defs.append('linearGradient').attr('id','tlg').attr('x1','0').attr('y1','0').attr('x2','0').attr('y2','1');
+  gr.append('stop').attr('offset','0%').attr('stop-color','#00d4ff').attr('stop-opacity',.4);
+  gr.append('stop').attr('offset','100%').attr('stop-color','#00d4ff').attr('stop-opacity',0);
+  g.append('path').datum(data).attr('fill','url(#tlg)').attr('d',d3.area().x(d=>x(d.date)).y0(iH).y1(d=>y(d.count)).curve(d3.curveCatmullRom));
+  g.append('path').datum(data).attr('fill','none').attr('stroke','#00d4ff').attr('stroke-width',2).attr('d',d3.line().x(d=>x(d.date)).y(d=>y(d.count)).curve(d3.curveCatmullRom));
+  g.append('g').attr('transform',`translate(0,${iH})`).call(d3.axisBottom(x).ticks(8).tickFormat(d3.timeFormat('%b %Y'))).selectAll('text').style('fill','#3a4a66').style('font-size','9px').attr('transform','rotate(-20)').attr('text-anchor','end');
+  g.append('g').call(d3.axisLeft(y).ticks(5)).selectAll('text').style('fill','#3a4a66').style('font-size','9px');
+  g.selectAll('.domain,.tick line').style('stroke','#1c2840');
+}
+
+// ─── D3 Heatmap ───
+function buildHM(){
+  if(!COL.date)return;const el=document.getElementById('hmwrap');if(!el)return;el.innerHTML='';
+  const mat={};ALL.forEach(r=>{const d=pd(r[COL.date]);if(!d)return;const y=d.getFullYear();if(y<2000||y>2030)return;const k=`${y}-${d.getMonth()}`;mat[k]=(mat[k]||0)+1;});
+  const years=[...new Set(Object.keys(mat).map(k=>parseInt(k.split('-')[0])))].sort();const mos=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const maxV=Math.max(...Object.values(mat),1);const cW=28,cH=22,pX=48,pY=28;
+  const W=Math.max(el.clientWidth||400,mos.length*cW+pX+20);const H=years.length*cH+pY+16;
+  const svg=d3.select(el).append('svg').attr('width',W).attr('height',H);
+  mos.forEach((m,i)=>svg.append('text').attr('x',pX+i*cW+cW/2).attr('y',16).attr('text-anchor','middle').attr('fill','#3a4a66').attr('font-size','8px').attr('font-family',"'IBM Plex Mono',monospace").text(m));
+  years.forEach((y,yi)=>{
+    svg.append('text').attr('x',pX-4).attr('y',pY+yi*cH+cH/2+3).attr('text-anchor','end').attr('fill','#3a4a66').attr('font-size','8px').attr('font-family',"'IBM Plex Mono',monospace").text(y);
+    mos.forEach((_,mi)=>{const v=mat[`${y}-${mi}`]||0;const col=v===0?'#121829':d3.interpolate('#0a2040','#00d4ff')(v/maxV);svg.append('rect').attr('x',pX+mi*cW+1).attr('y',pY+yi*cH+1).attr('width',cW-2).attr('height',cH-2).attr('fill',col).attr('rx',2).append('title').text(`${mos[mi]} ${y}: ${v} permits`);});
   });
 }
 
-// ============================================================
-// DETECT COLUMNS
-// ============================================================
-function detectCol(candidates) {
-  if (!allData.length) return null;
-  const keys = Object.keys(allData[0]).map(k => k.toLowerCase());
-  for (const c of candidates) {
-    const idx = keys.findIndex(k => k.includes(c.toLowerCase()));
-    if (idx !== -1) return Object.keys(allData[0])[idx];
-  }
-  return null;
+// ─── TABLE ───
+function buildFilters(){
+  function fill(id,col){if(!col)return;const vals=[...new Set(ALL.map(r=>r[col]).filter(Boolean))].sort();const s=document.getElementById(id);vals.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;s.appendChild(o);});}
+  fill('fs1',COL.type);fill('fs2',COL.status);
+  if(COL.date){const yrs=[...new Set(ALL.map(r=>{const d=pd(r[COL.date]);return d?d.getFullYear():null;}).filter(Boolean))].sort().reverse();const s=document.getElementById('fs3');yrs.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;s.appendChild(o);});}
 }
-
-let COL = {};
-function detectColumns() {
-  COL.permitNo   = detectCol(['permit_no','permitnumber','permitno','permit_num','permit_id','objectid','caseno']);
-  COL.type       = detectCol(['permit_type','permittype','type','category','work_type','worktype','permit_cat']);
-  COL.status     = detectCol(['status','permit_status','permitstatus','stat']);
-  COL.date       = detectCol(['issue_date','issuedate','date_issued','applied_date','applieddate','issue','date','created']);
-  COL.address    = detectCol(['address','location','site_address','siteaddress','prop_address']);
-  COL.contractor = detectCol(['contractor','cont_name','contractor_name','contname','applicant']);
-  COL.owner      = detectCol(['owner','ownername','owner_name']);
-  COL.zip        = detectCol(['zip','zipcode','zip_code','postal']);
-  COL.lat        = detectCol(['lat','latitude','y','ylat']);
-  COL.lng        = detectCol(['lng','lon','long','longitude','x','xlon']);
-  COL.workDesc   = detectCol(['work_desc','workdesc','description','description','desc','work_type','worktype']);
-  COL.valuation  = detectCol(['valuation','value','project_value','est_value']);
+function buildTableHead(){
+  if(!ALL.length)return;
+  const ks=Object.keys(ALL[0]).slice(0,12);
+  document.getElementById('dth').innerHTML='<tr>'+ks.map(k=>`<th onclick="sortBy('${k}')">${k.replace(/_/g,' ')}</th>`).join('')+'</tr>';
 }
-
-// ============================================================
-// MAIN BUILD
-// ============================================================
-function buildDashboard() {
-  detectColumns();
-  updateStatus();
-  buildKPIs();
-  buildFilters();
-  buildAllCharts();
-  buildTable();
-  buildMap();
-}
-
-function updateStatus() {
-  const n = allData.length;
-  document.getElementById('record-count-badge').textContent = `${n.toLocaleString()} records loaded`;
-  document.getElementById('status-text').textContent = 'LIVE';
-  document.getElementById('status-dot').style.background = 'var(--green)';
-}
-
-// ============================================================
-// KPIs
-// ============================================================
-function buildKPIs() {
-  const total = allData.length;
-  document.getElementById('kpi-total').textContent = fmtNum(total);
-
-  const statusCounts = countBy(allData, COL.status);
-  const issued = sumStatusLike(statusCounts, ['issued','active','complete','approved','finaled','final']);
-  const pending = sumStatusLike(statusCounts, ['pending','applied','in review','open','submitted','in progress','under review']);
-  const expired = sumStatusLike(statusCounts, ['expired','void','voided','cancelled','canceled','inactive','lapsed']);
-
-  document.getElementById('kpi-issued').textContent = fmtNum(issued);
-  document.getElementById('kpi-issued-pct').textContent = total ? pct(issued/total) + ' of total' : '—';
-  document.getElementById('kpi-pending').textContent = fmtNum(pending);
-  document.getElementById('kpi-expired').textContent = fmtNum(expired);
-
-  const types = COL.type ? new Set(allData.map(r => r[COL.type]).filter(Boolean)).size : '—';
-  document.getElementById('kpi-types').textContent = types;
-
-  const currentYear = new Date().getFullYear();
-  const thisYear = COL.date ? allData.filter(r => {
-    const d = parseDate(r[COL.date]);
-    return d && d.getFullYear() === currentYear;
-  }).length : 0;
-  document.getElementById('kpi-thisyear').textContent = fmtNum(thisYear);
-  document.getElementById('kpi-year-label').textContent = 'Permits in ' + currentYear;
-}
-
-function sumStatusLike(counts, keywords) {
-  let sum = 0;
-  for (const [k, v] of Object.entries(counts)) {
-    if (keywords.some(kw => k.toLowerCase().includes(kw))) sum += v;
-  }
-  return sum;
-}
-
-// ============================================================
-// FILTERS
-// ============================================================
-function buildFilters() {
-  if (COL.type) {
-    const types = [...new Set(allData.map(r => r[COL.type]).filter(Boolean))].sort();
-    fillSelect('filter-type', types);
-  }
-  if (COL.status) {
-    const statuses = [...new Set(allData.map(r => r[COL.status]).filter(Boolean))].sort();
-    fillSelect('filter-status', statuses);
-  }
-  if (COL.date) {
-    const years = [...new Set(allData.map(r => {
-      const d = parseDate(r[COL.date]);
-      return d ? d.getFullYear() : null;
-    }).filter(Boolean))].sort().reverse();
-    fillSelect('filter-year', years);
-  }
-  // Build table head
-  buildTableHead();
-}
-
-function fillSelect(id, vals) {
-  const sel = document.getElementById(id);
-  vals.forEach(v => {
-    const o = document.createElement('option');
-    o.value = v; o.textContent = v;
-    sel.appendChild(o);
-  });
-}
-
-function applyFilters() {
-  const search = document.getElementById('search-input').value.toLowerCase();
-  const type = document.getElementById('filter-type').value;
-  const status = document.getElementById('filter-status').value;
-  const year = document.getElementById('filter-year').value;
-
-  filteredData = allData.filter(r => {
-    if (type && r[COL.type] !== type) return false;
-    if (status && r[COL.status] !== status) return false;
-    if (year) {
-      const d = parseDate(r[COL.date]);
-      if (!d || d.getFullYear() !== parseInt(year)) return false;
-    }
-    if (search) {
-      const row = Object.values(r).join(' ').toLowerCase();
-      if (!row.includes(search)) return false;
-    }
+function applyF(){
+  const s=document.getElementById('fs0').value.toLowerCase();
+  const t=document.getElementById('fs1').value;
+  const st=document.getElementById('fs2').value;
+  const yr=document.getElementById('fs3').value;
+  FIL=ALL.filter(r=>{
+    if(t&&r[COL.type]!==t)return false;
+    if(st&&r[COL.status]!==st)return false;
+    if(yr){const d=pd(r[COL.date]);if(!d||d.getFullYear()!==+yr)return false;}
+    if(s&&!Object.values(r).join(' ').toLowerCase().includes(s))return false;
     return true;
   });
-  currentPage = 1;
-  renderTable();
+  pg=1;renderT();
 }
-
-// ============================================================
-// ALL CHARTS
-// ============================================================
-function buildAllCharts() {
-  setTimeout(() => {
-    buildChartByType();
-    buildChartStatus();
-    buildChartMonthly();
-    buildChartWorkType();
-    buildChartAnnual();
-    buildChartSeason();
-    buildChartContractors();
-    buildChartZip();
-    buildChartStacked();
-    buildTreemap();
-    buildTimeline();
-    buildChartDOW();
-    buildChartQuarterly();
-    buildHeatmap();
-  }, 100);
+function renderT(){
+  const ks=ALL.length?Object.keys(ALL[0]).slice(0,12):[];
+  const s=(pg-1)*PG,e=s+PG;
+  document.getElementById('dtb').innerHTML=FIL.slice(s,e).map(r=>'<tr>'+ks.map(k=>{let v=r[k]||'';if(k===COL.status&&v)return`<td><span class="sb ${scc(v)}">${v}</span></td>`;return`<td title="${v}">${tr(String(v),24)}</td>`;}).join('')+'</tr>').join('');
+  document.getElementById('pi').textContent=`Showing ${(s+1).toLocaleString()}–${Math.min(e,FIL.length).toLocaleString()} of ${FIL.length.toLocaleString()} records`;
+  buildPg();
 }
-
-const PALETTE = [
-  '#00d4ff','#00e676','#ffd740','#ff5252','#e040fb','#ff9100',
-  '#40c4ff','#69f0ae','#ffff00','#ff6e40','#ea80fc','#b2ff59',
-  '#80d8ff','#a7ffeb','#ffe57f','#ff9e80','#b388ff','#ccff90'
-];
-
-function mkChart(id, config) {
-  const el = document.getElementById(id);
-  if (!el) return;
-  if (charts[id]) charts[id].destroy();
-  Chart.defaults.color = '#8892b0';
-  Chart.defaults.borderColor = '#1e2a42';
-  Chart.defaults.font.family = "'IBM Plex Mono', monospace";
-  Chart.defaults.font.size = 11;
-  charts[id] = new Chart(el, config);
+function buildPg(){
+  const tot=Math.ceil(FIL.length/PG);const el=document.getElementById('pbs');const pages=[];
+  if(pg>1)pages.push({l:'←',p:pg-1});
+  for(let i=Math.max(1,pg-2);i<=Math.min(tot,pg+2);i++)pages.push({l:i,p:i,a:i===pg});
+  if(pg<tot)pages.push({l:'→',p:pg+1});
+  el.innerHTML=pages.map(x=>`<button class="pb${x.a?' act':''}" onclick="goP(${x.p})">${x.l}</button>`).join('');
 }
+function goP(p){pg=p;renderT();document.getElementById('tw').scrollTop=0;}
+function sortBy(col){if(sK===col)sD*=-1;else{sK=col;sD=1;}FIL.sort((a,b)=>{const av=a[col]||'',bv=b[col]||'';return sD*(av<bv?-1:av>bv?1:0);});pg=1;renderT();}
 
-// Permits by Type (horizontal bar)
-function buildChartByType() {
-  if (!COL.type) return;
-  const counts = topN(countBy(allData, COL.type), 12);
-  mkChart('chart-by-type', {
-    type: 'bar',
-    data: {
-      labels: counts.map(x => truncate(x[0], 22)),
-      datasets: [{
-        data: counts.map(x => x[1]),
-        backgroundColor: PALETTE.slice(0, 12).map(c => c + '99'),
-        borderColor: PALETTE.slice(0, 12),
-        borderWidth: 1,
-        borderRadius: 3,
-      }]
-    },
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      plugins: {
-        legend: { display: false },
-        tooltip: { mode: 'nearest', callbacks: { label: ctx => ' ' + ctx.raw.toLocaleString() + ' permits' } }
-      },
-      scales: {
-        x: { grid: { color: '#1e2a42' }, ticks: { color: '#4a5568' } },
-        y: { grid: { display: false }, ticks: { color: '#8892b0', font: { size: 10 } } }
-      }
-    }
-  });
-}
-
-// Status donut
-function buildChartStatus() {
-  if (!COL.status) return;
-  const counts = topN(countBy(allData, COL.status), 8);
-  mkChart('chart-status', {
-    type: 'doughnut',
-    data: {
-      labels: counts.map(x => x[0] || 'Unknown'),
-      datasets: [{
-        data: counts.map(x => x[1]),
-        backgroundColor: PALETTE.map(c => c + 'bb'),
-        borderColor: '#0f1422',
-        borderWidth: 2,
-      }]
-    },
-    options: {
-      responsive: true,
-      cutout: '62%',
-      plugins: {
-        legend: { position: 'right', labels: { color: '#8892b0', boxWidth: 12, padding: 12 } },
-        tooltip: { callbacks: { label: ctx => ' ' + ctx.raw.toLocaleString() + ' (' + pct(ctx.raw/allData.length) + ')' } }
-      }
-    }
-  });
-}
-
-// Monthly (last 12 months)
-function buildChartMonthly() {
-  if (!COL.date) return;
-  const now = new Date();
-  const months = [];
-  for (let i = 11; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    months.push({ label: d.toLocaleString('default', { month: 'short', year: '2-digit' }), key: `${d.getFullYear()}-${d.getMonth()}`, count: 0 });
-  }
-  allData.forEach(r => {
-    const d = parseDate(r[COL.date]);
-    if (!d) return;
-    const key = `${d.getFullYear()}-${d.getMonth()}`;
-    const m = months.find(x => x.key === key);
-    if (m) m.count++;
-  });
-  mkChart('chart-monthly', {
-    type: 'bar',
-    data: {
-      labels: months.map(m => m.label),
-      datasets: [{
-        label: 'Permits',
-        data: months.map(m => m.count),
-        backgroundColor: months.map((_, i) => i === 11 ? '#00d4ff' : '#00d4ff44'),
-        borderColor: '#00d4ff',
-        borderWidth: 1,
-        borderRadius: 4,
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { display: false }, ticks: { color: '#4a5568', font: { size: 9 } } },
-        y: { grid: { color: '#1e2a42' }, ticks: { color: '#4a5568' } }
-      }
-    }
-  });
-}
-
-// Work type
-function buildChartWorkType() {
-  const col = COL.workDesc || COL.type;
-  if (!col) return;
-  const counts = topN(countBy(allData, col), 10);
-  mkChart('chart-worktype', {
-    type: 'bar',
-    data: {
-      labels: counts.map(x => truncate(x[0], 18)),
-      datasets: [{
-        data: counts.map(x => x[1]),
-        backgroundColor: ['#00d4ff','#00e676','#ffd740','#ff5252','#e040fb','#ff9100','#40c4ff','#69f0ae','#ffff00','#ff6e40'].map(c => c + '88'),
-        borderColor: ['#00d4ff','#00e676','#ffd740','#ff5252','#e040fb','#ff9100','#40c4ff','#69f0ae','#ffff00','#ff6e40'],
-        borderWidth: 1, borderRadius: 3,
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { display: false }, ticks: { color: '#4a5568', font: { size: 9 }, maxRotation: 30 } },
-        y: { grid: { color: '#1e2a42' }, ticks: { color: '#4a5568' } }
-      }
-    }
-  });
-}
-
-// Annual
-function buildChartAnnual() {
-  if (!COL.date) return;
-  const yearCounts = {};
-  allData.forEach(r => {
-    const d = parseDate(r[COL.date]);
-    if (!d) return;
-    const y = d.getFullYear();
-    if (y < 1990 || y > 2030) return;
-    yearCounts[y] = (yearCounts[y] || 0) + 1;
-  });
-  const sorted = Object.entries(yearCounts).sort((a,b) => a[0]-b[0]);
-  mkChart('chart-annual', {
-    type: 'line',
-    data: {
-      labels: sorted.map(x => x[0]),
-      datasets: [{
-        label: 'Permits',
-        data: sorted.map(x => x[1]),
-        borderColor: '#00d4ff',
-        backgroundColor: 'rgba(0,212,255,0.08)',
-        borderWidth: 2,
-        fill: true,
-        tension: 0.3,
-        pointBackgroundColor: '#00d4ff',
-        pointRadius: 3,
-        pointHoverRadius: 5,
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { color: '#1e2a42' }, ticks: { color: '#4a5568' } },
-        y: { grid: { color: '#1e2a42' }, ticks: { color: '#4a5568' } }
-      }
-    }
-  });
-}
-
-// Seasonality (by calendar month)
-function buildChartSeason() {
-  if (!COL.date) return;
-  const months = Array(12).fill(0);
-  allData.forEach(r => {
-    const d = parseDate(r[COL.date]);
-    if (!d) return;
-    months[d.getMonth()]++;
-  });
-  const labels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  mkChart('chart-season', {
-    type: 'bar',
-    data: {
-      labels,
-      datasets: [{
-        data: months,
-        backgroundColor: months.map((v, i) => {
-          const maxV = Math.max(...months);
-          const alpha = 0.3 + 0.7 * (v / (maxV || 1));
-          return `rgba(0,212,255,${alpha.toFixed(2)})`;
-        }),
-        borderColor: '#00d4ff',
-        borderWidth: 1,
-        borderRadius: 4,
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { display: false }, ticks: { color: '#4a5568' } },
-        y: { grid: { color: '#1e2a42' }, ticks: { color: '#4a5568' } }
-      }
-    }
-  });
-}
-
-// Contractors
-function buildChartContractors() {
-  if (!COL.contractor) return;
-  const counts = topN(countBy(allData.filter(r => r[COL.contractor] && r[COL.contractor].trim()), COL.contractor), 15);
-  if (!counts.length) return;
-  mkChart('chart-contractors', {
-    type: 'bar',
-    data: {
-      labels: counts.map(x => truncate(x[0], 30)),
-      datasets: [{
-        data: counts.map(x => x[1]),
-        backgroundColor: '#00e67644',
-        borderColor: '#00e676',
-        borderWidth: 1,
-        borderRadius: 4,
-      }]
-    },
-    options: {
-      indexAxis: 'y',
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { color: '#1e2a42' }, ticks: { color: '#4a5568' } },
-        y: { grid: { display: false }, ticks: { color: '#8892b0', font: { size: 10 } } }
-      }
-    }
-  });
-}
-
-// By Zip
-function buildChartZip() {
-  if (!COL.zip) return;
-  const counts = topN(countBy(allData.filter(r => r[COL.zip]), COL.zip), 15);
-  if (!counts.length) return;
-  mkChart('chart-zip', {
-    type: 'bar',
-    data: {
-      labels: counts.map(x => x[0]),
-      datasets: [{
-        data: counts.map(x => x[1]),
-        backgroundColor: '#ffd74044',
-        borderColor: '#ffd740',
-        borderWidth: 1,
-        borderRadius: 4,
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { display: false }, ticks: { color: '#4a5568', font: { size: 10 } } },
-        y: { grid: { color: '#1e2a42' }, ticks: { color: '#4a5568' } }
-      }
-    }
-  });
-}
-
-// Stacked: status by type (top 8 types)
-function buildChartStacked() {
-  if (!COL.type || !COL.status) return;
-  const topTypes = topN(countBy(allData, COL.type), 8).map(x => x[0]);
-  const statuses = [...new Set(allData.map(r => r[COL.status]).filter(Boolean))].slice(0,5);
-  const datasets = statuses.map((s, i) => ({
-    label: s || 'Unknown',
-    data: topTypes.map(t => allData.filter(r => r[COL.type] === t && r[COL.status] === s).length),
-    backgroundColor: PALETTE[i] + '99',
-    borderColor: PALETTE[i],
-    borderWidth: 1,
-  }));
-  mkChart('chart-stacked', {
-    type: 'bar',
-    data: { labels: topTypes.map(t => truncate(t, 16)), datasets },
-    options: {
-      responsive: true,
-      plugins: { legend: { position: 'bottom', labels: { color: '#8892b0', boxWidth: 10, padding: 10, font: { size: 10 } } } },
-      scales: {
-        x: { stacked: true, grid: { display: false }, ticks: { color: '#4a5568', font: { size: 9 }, maxRotation: 30 } },
-        y: { stacked: true, grid: { color: '#1e2a42' }, ticks: { color: '#4a5568' } }
-      }
-    }
-  });
-}
-
-// Day of week
-function buildChartDOW() {
-  if (!COL.date) return;
-  const days = Array(7).fill(0);
-  allData.forEach(r => {
-    const d = parseDate(r[COL.date]);
-    if (d) days[d.getDay()]++;
-  });
-  const labels = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  mkChart('chart-dow', {
-    type: 'polarArea',
-    data: {
-      labels,
-      datasets: [{
-        data: days,
-        backgroundColor: PALETTE.slice(0,7).map(c => c + '99'),
-        borderColor: PALETTE.slice(0,7),
-        borderWidth: 1,
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: {
-        legend: { position: 'right', labels: { color: '#8892b0', boxWidth: 10, padding: 8 } }
-      },
-      scales: { r: { grid: { color: '#1e2a42' }, ticks: { color: '#4a5568', backdropColor: 'transparent' } } }
-    }
-  });
-}
-
-// Quarterly
-function buildChartQuarterly() {
-  if (!COL.date) return;
-  const qCounts = {};
-  allData.forEach(r => {
-    const d = parseDate(r[COL.date]);
-    if (!d) return;
-    const y = d.getFullYear();
-    if (y < 1990 || y > 2030) return;
-    const q = Math.floor(d.getMonth()/3) + 1;
-    const key = `${y} Q${q}`;
-    qCounts[key] = (qCounts[key] || 0) + 1;
-  });
-  const sorted = Object.entries(qCounts).sort((a,b) => a[0] < b[0] ? -1 : 1);
-  mkChart('chart-quarterly', {
-    type: 'line',
-    data: {
-      labels: sorted.map(x => x[0]),
-      datasets: [{
-        label: 'Permits',
-        data: sorted.map(x => x[1]),
-        borderColor: '#e040fb',
-        backgroundColor: 'rgba(224,64,251,0.07)',
-        borderWidth: 2,
-        fill: true,
-        tension: 0.2,
-        pointRadius: 2,
-        pointBackgroundColor: '#e040fb',
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: {
-        x: { grid: { color: '#1e2a42' }, ticks: { color: '#4a5568', maxTicksLimit: 12, maxRotation: 45 } },
-        y: { grid: { color: '#1e2a42' }, ticks: { color: '#4a5568' } }
-      }
-    }
-  });
-}
-
-// ============================================================
-// D3 TREEMAP
-// ============================================================
-function buildTreemap() {
-  if (!COL.type) return;
-  const el = document.getElementById('treemap-wrap');
-  if (!el) return;
-  const counts = topN(countBy(allData, COL.type), 20);
-  const W = el.clientWidth || 800, H = 320;
-  el.innerHTML = '';
-  const svg = d3.select(el).append('svg').attr('width', W).attr('height', H);
-
-  const root = d3.hierarchy({ children: counts.map(([name, value]) => ({ name, value })) })
-    .sum(d => d.value);
-  d3.treemap().size([W, H]).padding(2)(root);
-
-  const cell = svg.selectAll('g').data(root.leaves()).enter().append('g')
-    .attr('transform', d => `translate(${d.x0},${d.y0})`);
-
-  cell.append('rect')
-    .attr('width', d => Math.max(0, d.x1 - d.x0))
-    .attr('height', d => Math.max(0, d.y1 - d.y0))
-    .attr('fill', (d, i) => PALETTE[i % PALETTE.length] + '55')
-    .attr('stroke', (d, i) => PALETTE[i % PALETTE.length])
-    .attr('stroke-width', 1)
-    .attr('rx', 3);
-
-  cell.append('text')
-    .attr('x', 6).attr('y', 14)
-    .attr('fill', (d, i) => PALETTE[i % PALETTE.length])
-    .attr('font-size', d => {
-      const w = d.x1 - d.x0;
-      return w > 80 ? '11px' : '9px';
-    })
-    .attr('font-family', "'IBM Plex Mono', monospace")
-    .text(d => {
-      const w = d.x1 - d.x0;
-      return w > 50 ? truncate(d.data.name, Math.floor(w/7)) : '';
-    });
-
-  cell.append('text')
-    .attr('x', 6).attr('y', 28)
-    .attr('fill', '#8892b0')
-    .attr('font-size', '10px')
-    .attr('font-family', "'IBM Plex Mono', monospace")
-    .text(d => {
-      const w = d.x1 - d.x0;
-      return w > 50 ? d.data.value.toLocaleString() : '';
-    });
-}
-
-// ============================================================
-// D3 TIMELINE (Area Chart)
-// ============================================================
-function buildTimeline() {
-  if (!COL.date) return;
-  const el = document.getElementById('timeline-wrap');
-  if (!el) return;
-  el.innerHTML = '';
-
-  // Build monthly data
-  const monthly = {};
-  allData.forEach(r => {
-    const d = parseDate(r[COL.date]);
-    if (!d) return;
-    const y = d.getFullYear();
-    if (y < 1990 || y > 2030) return;
-    const key = new Date(y, d.getMonth(), 1).getTime();
-    monthly[key] = (monthly[key] || 0) + 1;
-  });
-  const data = Object.entries(monthly).map(([t, v]) => ({ date: new Date(+t), count: v })).sort((a,b) => a.date-b.date);
-  if (!data.length) return;
-
-  const W = el.clientWidth || 800, H = 200;
-  const margin = { top: 10, right: 20, bottom: 30, left: 50 };
-  const iW = W - margin.left - margin.right;
-  const iH = H - margin.top - margin.bottom;
-
-  const svg = d3.select(el).append('svg').attr('width', W).attr('height', H);
-  const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
-
-  const x = d3.scaleTime().domain(d3.extent(data, d => d.date)).range([0, iW]);
-  const y = d3.scaleLinear().domain([0, d3.max(data, d => d.count) * 1.1]).range([iH, 0]);
-
-  const area = d3.area().x(d => x(d.date)).y0(iH).y1(d => y(d.count)).curve(d3.curveCatmullRom);
-  const line = d3.line().x(d => x(d.date)).y(d => y(d.count)).curve(d3.curveCatmullRom);
-
-  // Gradient
-  const defs = svg.append('defs');
-  const grad = defs.append('linearGradient').attr('id','tlgrad').attr('x1','0').attr('y1','0').attr('x2','0').attr('y2','1');
-  grad.append('stop').attr('offset','0%').attr('stop-color','#00d4ff').attr('stop-opacity',0.4);
-  grad.append('stop').attr('offset','100%').attr('stop-color','#00d4ff').attr('stop-opacity',0);
-
-  g.append('path').datum(data).attr('fill','url(#tlgrad)').attr('d', area);
-  g.append('path').datum(data).attr('fill','none').attr('stroke','#00d4ff').attr('stroke-width',2).attr('d', line);
-
-  // Axes
-  g.append('g').attr('transform', `translate(0,${iH})`)
-    .call(d3.axisBottom(x).ticks(8).tickFormat(d3.timeFormat('%b %Y')))
-    .selectAll('text').style('fill','#4a5568').style('font-size','10px').attr('transform','rotate(-20)').attr('text-anchor','end');
-  g.append('g')
-    .call(d3.axisLeft(y).ticks(5))
-    .selectAll('text').style('fill','#4a5568').style('font-size','10px');
-
-  g.selectAll('.domain, .tick line').style('stroke','#1e2a42');
-}
-
-// ============================================================
-// D3 HEATMAP
-// ============================================================
-function buildHeatmap() {
-  if (!COL.date) return;
-  const el = document.getElementById('heatmap-wrap');
-  if (!el) return;
-  el.innerHTML = '';
-
-  const matrix = {};
-  allData.forEach(r => {
-    const d = parseDate(r[COL.date]);
-    if (!d) return;
-    const y = d.getFullYear();
-    if (y < 2005 || y > 2030) return;
-    const m = d.getMonth();
-    const key = `${y}-${m}`;
-    matrix[key] = (matrix[key] || 0) + 1;
-  });
-
-  const years = [...new Set(Object.keys(matrix).map(k => parseInt(k.split('-')[0])))].sort();
-  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  const vals = Object.values(matrix);
-  const maxVal = Math.max(...vals, 1);
-
-  const cellW = 28, cellH = 22, padX = 50, padY = 30;
-  const W = Math.max(el.clientWidth, months.length * cellW + padX + 20);
-  const H = years.length * cellH + padY + 20;
-
-  const svg = d3.select(el).append('svg').attr('width', W).attr('height', H);
-  const color = d3.scaleSequential(d3.interpolateBlues).domain([0, maxVal]);
-
-  // Month labels
-  months.forEach((m, i) => {
-    svg.append('text').attr('x', padX + i * cellW + cellW/2).attr('y', 16)
-      .attr('text-anchor','middle').attr('fill','#4a5568')
-      .attr('font-size','9px').attr('font-family',"'IBM Plex Mono', monospace")
-      .text(m);
-  });
-
-  years.forEach((y, yi) => {
-    // Year label
-    svg.append('text').attr('x', padX - 6).attr('y', padY + yi * cellH + cellH/2 + 4)
-      .attr('text-anchor','end').attr('fill','#4a5568')
-      .attr('font-size','9px').attr('font-family',"'IBM Plex Mono', monospace")
-      .text(y);
-
-    months.forEach((m, mi) => {
-      const v = matrix[`${y}-${mi}`] || 0;
-      const col = v === 0 ? '#1a2035' : d3.interpolate('#1a3855', '#00d4ff')(v/maxVal);
-      svg.append('rect')
-        .attr('x', padX + mi * cellW + 1).attr('y', padY + yi * cellH + 1)
-        .attr('width', cellW - 2).attr('height', cellH - 2)
-        .attr('fill', col).attr('rx', 2)
-        .append('title').text(`${m} ${y}: ${v} permits`);
-    });
-  });
-}
-
-// ============================================================
-// MAP (Leaflet)
-// ============================================================
-function buildMap() {
-  setTimeout(() => {
-    if (!mapInstance) {
-      mapInstance = L.map('permit-map', { preferCanvas: true }).setView([35.045, -85.309], 12);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '©OpenStreetMap, ©CartoDB',
-        maxZoom: 19
-      }).addTo(mapInstance);
-    }
-
-    if (!COL.lat || !COL.lng) {
-      document.getElementById('map-error').style.display = 'block';
-      document.getElementById('map-error').textContent = 'No coordinate columns detected in dataset. Map requires lat/lng fields.';
-      return;
-    }
-
-    const pts = allData
-      .filter(r => r[COL.lat] && r[COL.lng] && !isNaN(parseFloat(r[COL.lat])) && !isNaN(parseFloat(r[COL.lng])))
-      .slice(0, 5000);
-
-    if (!pts.length) {
-      document.getElementById('map-error').style.display = 'block';
-      document.getElementById('map-error').textContent = 'No valid coordinates found in the data.';
-      return;
-    }
-
-    if (mapMarkers) { mapMarkers.clearLayers(); }
-
-    mapMarkers = L.layerGroup();
-    const statusColorMap = (s) => {
-      if (!s) return '#8892b0';
-      const sl = s.toLowerCase();
-      if (sl.includes('issued') || sl.includes('active') || sl.includes('final')) return '#00e676';
-      if (sl.includes('pending') || sl.includes('review') || sl.includes('open')) return '#ffd740';
-      if (sl.includes('void') || sl.includes('cancel') || sl.includes('expire')) return '#ff5252';
-      return '#00d4ff';
-    };
-
-    pts.forEach(r => {
-      const lat = parseFloat(r[COL.lat]);
-      const lng = parseFloat(r[COL.lng]);
-      if (isNaN(lat) || isNaN(lng)) return;
-      const color = statusColorMap(r[COL.status]);
-      const marker = L.circleMarker([lat, lng], {
-        radius: 4, color: color, fillColor: color,
-        fillOpacity: 0.7, weight: 0
-      });
-      const popup = [
-        COL.permitNo && r[COL.permitNo] ? `<b>#${r[COL.permitNo]}</b>` : '',
-        COL.type && r[COL.type] ? r[COL.type] : '',
-        COL.status && r[COL.status] ? `Status: ${r[COL.status]}` : '',
-        COL.address && r[COL.address] ? r[COL.address] : '',
-        COL.date && r[COL.date] ? r[COL.date] : '',
-      ].filter(Boolean).join('<br>');
-      marker.bindPopup(`<div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#e8eaf6;background:#141928;border-radius:6px;padding:8px">${popup}</div>`);
-      mapMarkers.addLayer(marker);
-    });
-
-    mapMarkers.addTo(mapInstance);
-  }, 300);
-}
-
-// ============================================================
-// TABLE
-// ============================================================
-function buildTableHead() {
-  if (!allData.length) return;
-  const keys = Object.keys(allData[0]).slice(0, 12);
-  const thead = document.getElementById('table-head');
-  thead.innerHTML = '<tr>' + keys.map(k =>
-    `<th onclick="sortBy('${k}')" id="th-${k.replace(/\W/g,'_')}">${k.replace(/_/g,' ')}</th>`
-  ).join('') + '</tr>';
-  renderTable();
-}
-
-function renderTable() {
-  const start = (currentPage - 1) * PAGE_SIZE;
-  const end = start + PAGE_SIZE;
-  const page = filteredData.slice(start, end);
-  const keys = allData.length ? Object.keys(allData[0]).slice(0, 12) : [];
-
-  const tbody = document.getElementById('table-body');
-  tbody.innerHTML = page.map(r =>
-    '<tr>' + keys.map((k, i) => {
-      let val = r[k] || '';
-      if (k === COL.status && val) {
-        const cls = getStatusClass(val);
-        return `<td><span class="status-badge ${cls}">${val}</span></td>`;
-      }
-      return `<td title="${val}">${truncate(val, 25)}</td>`;
-    }).join('') + '</tr>'
-  ).join('');
-
-  document.getElementById('page-info').textContent =
-    `Showing ${(start+1).toLocaleString()}–${Math.min(end, filteredData.length).toLocaleString()} of ${filteredData.length.toLocaleString()} records`;
-  buildPagination();
-}
-
-function buildPagination() {
-  const total = Math.ceil(filteredData.length / PAGE_SIZE);
-  const el = document.getElementById('page-btns');
-  const pages = [];
-  if (currentPage > 1) pages.push({ label: '←', page: currentPage-1 });
-  const start = Math.max(1, currentPage - 2);
-  const end2 = Math.min(total, currentPage + 2);
-  for (let i = start; i <= end2; i++) pages.push({ label: i, page: i, active: i === currentPage });
-  if (currentPage < total) pages.push({ label: '→', page: currentPage+1 });
-
-  el.innerHTML = pages.map(p =>
-    `<button class="page-btn${p.active ? ' active' : ''}" onclick="goPage(${p.page})">${p.label}</button>`
-  ).join('');
-}
-
-function goPage(p) { currentPage = p; renderTable(); document.getElementById('table-wrap').scrollTop = 0; }
-
-function sortBy(col) {
-  if (sortCol === col) sortDir *= -1;
-  else { sortCol = col; sortDir = 1; }
-  filteredData.sort((a, b) => {
-    const av = a[col] || ''; const bv = b[col] || '';
-    return sortDir * (av < bv ? -1 : av > bv ? 1 : 0);
-  });
-  currentPage = 1;
-  renderTable();
-}
-
-function getStatusClass(s) {
-  const sl = s.toLowerCase();
-  if (sl.includes('issued') || sl.includes('active') || sl.includes('final') || sl.includes('complet') || sl.includes('approved')) return 'status-issued';
-  if (sl.includes('pend') || sl.includes('review') || sl.includes('open') || sl.includes('submit') || sl.includes('progress')) return 'status-pending';
-  if (sl.includes('expir') || sl.includes('laps')) return 'status-expired';
-  if (sl.includes('void') || sl.includes('cancel')) return 'status-voided';
-  return 'status-other';
-}
-
-// ============================================================
-// TABS
-// ============================================================
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
+// ─── TABS ───
+document.querySelectorAll('.tab').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.tv').forEach(v=>v.classList.remove('active'));
     btn.classList.add('active');
-    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-    // Trigger map resize
-    if (btn.dataset.tab === 'map' && mapInstance) {
-      setTimeout(() => mapInstance.invalidateSize(), 100);
-    }
-    // Rebuild D3 charts on tab switch (for correct sizing)
-    if (btn.dataset.tab === 'analytics') { buildTreemap(); }
-    if (btn.dataset.tab === 'timeline') { buildTimeline(); buildHeatmap(); }
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+    if(btn.dataset.tab==='map'){setTimeout(()=>{mapL&&mapL.invalidateSize();if(ALL.length&&!CG)plotPts();},120);}
+    if(btn.dataset.tab==='analytics')buildTM();
+    if(btn.dataset.tab==='timeline'){buildTL();buildHM();}
   });
 });
+window.addEventListener('resize',()=>{clearTimeout(window._rt);window._rt=setTimeout(()=>{buildTM();buildTL();buildHM();},300);});
 
-// ============================================================
-// HELPERS
-// ============================================================
-function countBy(arr, col) {
-  if (!col) return {};
-  return arr.reduce((acc, r) => {
-    const v = r[col] || '(blank)';
-    acc[v] = (acc[v] || 0) + 1;
-    return acc;
-  }, {});
-}
-function topN(counts, n) {
-  return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, n);
-}
-function parseDate(s) {
-  if (!s) return null;
-  const d = new Date(s);
-  return isNaN(d) ? null : d;
-}
-function fmtNum(n) {
-  if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
-  if (n >= 1000) return (n/1000).toFixed(1) + 'K';
-  return n.toLocaleString();
-}
-function pct(v) { return (v * 100).toFixed(1) + '%'; }
-function truncate(s, n) { if (!s) return ''; s = String(s); return s.length > n ? s.slice(0, n) + '…' : s; }
+// ─── UTILS ───
+function cntBy(arr,col){if(!col)return{};return arr.reduce((a,r)=>{const v=r[col]||'(blank)';a[v]=(a[v]||0)+1;return a;},{});}
+function topN(c,n){return Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,n);}
+function sumLike(c,kws){return Object.entries(c).reduce((s,[k,v])=>kws.some(kw=>k.toLowerCase().includes(kw))?s+v:s,0);}
+function pd(s){if(!s)return null;const d=new Date(s);return isNaN(d)?null:d;}
+function fmt(n){if(n>=1e6)return(n/1e6).toFixed(1)+'M';if(n>=1e3)return(n/1e3).toFixed(1)+'K';return n.toLocaleString();}
+function pct(v){return(v*100).toFixed(1)+'%';}
+function tr(s,n){s=String(s||'');return s.length>n?s.slice(0,n)+'…':s;}
+function set(id,v){const e=document.getElementById(id);if(e)e.textContent=v;}
 
-// Handle window resize for D3
-let resizeTimer;
-window.addEventListener('resize', () => {
-  clearTimeout(resizeTimer);
-  resizeTimer = setTimeout(() => {
-    const activeTab = document.querySelector('.tab-btn.active')?.dataset?.tab;
-    if (activeTab === 'analytics') buildTreemap();
-    if (activeTab === 'timeline') { buildTimeline(); buildHeatmap(); }
-  }, 300);
-});
-
-// INIT
 init();
 </script>
 </body>
