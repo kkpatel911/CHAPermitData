@@ -1,0 +1,1810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chattanooga Permits Dashboard</title>
+
+<!-- Libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@300;400;600;700;800&family=IBM+Plex+Mono:wght@300;400;500&family=Barlow:wght@300;400;500&display=swap" rel="stylesheet">
+
+<style>
+:root {
+  --bg: #0a0e1a;
+  --bg2: #0f1422;
+  --bg3: #141928;
+  --card: #141928;
+  --card2: #1a2035;
+  --border: #1e2a42;
+  --border2: #243050;
+  --accent: #00d4ff;
+  --accent2: #0099cc;
+  --green: #00e676;
+  --yellow: #ffd740;
+  --red: #ff5252;
+  --orange: #ff9100;
+  --purple: #e040fb;
+  --text: #e8eaf6;
+  --text2: #8892b0;
+  --text3: #4a5568;
+  --glow: 0 0 20px rgba(0,212,255,0.15);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Barlow', sans-serif;
+  font-size: 14px;
+  overflow-x: hidden;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 2px; }
+
+/* HEADER */
+#header {
+  background: linear-gradient(135deg, #0a0e1a 0%, #0f1932 100%);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 56px;
+  backdrop-filter: blur(10px);
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.logo-icon {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+  display: flex; align-items: center; justify-content: center;
+}
+.logo-text {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text);
+}
+.logo-text span { color: var(--accent); }
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+#status-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: rgba(0,230,118,0.1);
+  border: 1px solid rgba(0,230,118,0.3);
+  border-radius: 20px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--green);
+}
+#status-dot {
+  width: 6px; height: 6px;
+  background: var(--green);
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+
+#record-count-badge {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--text2);
+}
+
+/* LOADING */
+#loading-screen {
+  position: fixed; inset: 0;
+  background: var(--bg);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+.loader-ring {
+  width: 64px; height: 64px;
+  border: 3px solid var(--border2);
+  border-top: 3px solid var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+#loading-msg {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 13px;
+  color: var(--text2);
+  letter-spacing: 1px;
+}
+.loader-bar {
+  width: 300px; height: 2px;
+  background: var(--border);
+  border-radius: 1px;
+  overflow: hidden;
+}
+.loader-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent2), var(--accent));
+  width: 0%;
+  transition: width 0.3s ease;
+  border-radius: 1px;
+}
+
+/* UPLOAD FALLBACK */
+#upload-zone {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 48px;
+  border: 2px dashed var(--border2);
+  border-radius: 12px;
+  margin: 40px auto;
+  max-width: 500px;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+#upload-zone:hover { border-color: var(--accent); }
+#upload-zone.drag-over { border-color: var(--accent); background: rgba(0,212,255,0.05); }
+.upload-icon { font-size: 48px; }
+.upload-title { font-family: 'Barlow Condensed', sans-serif; font-size: 22px; font-weight: 700; }
+.upload-sub { color: var(--text2); font-size: 13px; text-align: center; line-height: 1.5; }
+.upload-btn {
+  padding: 10px 24px;
+  background: linear-gradient(135deg, var(--accent2), var(--accent));
+  color: #000;
+  border: none;
+  border-radius: 6px;
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+/* TABS */
+#nav-tabs {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  gap: 0;
+  padding: 0 24px;
+  overflow-x: auto;
+}
+.tab-btn {
+  padding: 14px 20px;
+  background: transparent;
+  border: none;
+  color: var(--text2);
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+.tab-icon { font-size: 14px; }
+
+/* MAIN */
+#main {
+  padding: 24px;
+  max-width: 1600px;
+  margin: 0 auto;
+}
+
+/* KPI CARDS */
+#kpi-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.kpi-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.2s, border-color 0.2s;
+}
+.kpi-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--border2);
+}
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+}
+.kpi-card.blue::before { background: linear-gradient(90deg, var(--accent2), var(--accent)); }
+.kpi-card.green::before { background: linear-gradient(90deg, #00b248, var(--green)); }
+.kpi-card.yellow::before { background: linear-gradient(90deg, #e65100, var(--yellow)); }
+.kpi-card.red::before { background: linear-gradient(90deg, #b71c1c, var(--red)); }
+.kpi-card.purple::before { background: linear-gradient(90deg, #6a1b9a, var(--purple)); }
+.kpi-card.orange::before { background: linear-gradient(90deg, #e65100, var(--orange)); }
+
+.kpi-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text3);
+  margin-bottom: 8px;
+}
+.kpi-value {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 36px;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.kpi-card.blue .kpi-value { color: var(--accent); }
+.kpi-card.green .kpi-value { color: var(--green); }
+.kpi-card.yellow .kpi-value { color: var(--yellow); }
+.kpi-card.red .kpi-value { color: var(--red); }
+.kpi-card.purple .kpi-value { color: var(--purple); }
+.kpi-card.orange .kpi-value { color: var(--orange); }
+.kpi-sub {
+  font-size: 11px;
+  color: var(--text3);
+}
+
+/* CHART GRID */
+.chart-grid {
+  display: grid;
+  gap: 20px;
+}
+.grid-2 { grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); }
+.grid-3 { grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+.grid-1 { grid-template-columns: 1fr; }
+
+.chart-card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  position: relative;
+}
+.chart-title {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text2);
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.chart-title-badge {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: rgba(0,212,255,0.1);
+  color: var(--accent);
+  border: 1px solid rgba(0,212,255,0.2);
+}
+.chart-wrap {
+  position: relative;
+  width: 100%;
+}
+.chart-wrap canvas {
+  max-width: 100%;
+}
+
+/* FILTER BAR */
+#filter-bar {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 140px;
+  flex: 1;
+}
+.filter-label {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text3);
+}
+.filter-select, .filter-input {
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 7px 10px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-family: 'Barlow', sans-serif;
+  outline: none;
+  transition: border-color 0.2s;
+  cursor: pointer;
+  width: 100%;
+}
+.filter-select:hover, .filter-input:hover { border-color: var(--border2); }
+.filter-select:focus, .filter-input:focus { border-color: var(--accent2); }
+
+/* TABLE */
+#table-wrap {
+  overflow: auto;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+#data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+}
+#data-table thead tr {
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border2);
+}
+#data-table thead th {
+  padding: 12px 14px;
+  text-align: left;
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text2);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+  transition: color 0.2s;
+}
+#data-table thead th:hover { color: var(--accent); }
+#data-table thead th.sorted { color: var(--accent); }
+#data-table tbody tr {
+  border-bottom: 1px solid var(--border);
+  transition: background 0.1s;
+}
+#data-table tbody tr:hover { background: var(--card2); }
+#data-table tbody td {
+  padding: 10px 14px;
+  color: var(--text2);
+  white-space: nowrap;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+#data-table tbody td:first-child { color: var(--accent); }
+
+.status-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.status-issued { background: rgba(0,230,118,0.12); color: var(--green); border: 1px solid rgba(0,230,118,0.25); }
+.status-pending { background: rgba(255,215,64,0.12); color: var(--yellow); border: 1px solid rgba(255,215,64,0.25); }
+.status-expired { background: rgba(255,82,82,0.12); color: var(--red); border: 1px solid rgba(255,82,82,0.25); }
+.status-voided { background: rgba(255,145,0,0.12); color: var(--orange); border: 1px solid rgba(255,145,0,0.25); }
+.status-other { background: rgba(136,146,176,0.12); color: var(--text2); border: 1px solid rgba(136,146,176,0.2); }
+
+/* PAGINATION */
+#pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 10px 10px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.page-info {
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--text3);
+}
+.page-btns { display: flex; gap: 4px; }
+.page-btn {
+  padding: 4px 10px;
+  background: var(--bg3);
+  border: 1px solid var(--border);
+  color: var(--text2);
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  transition: all 0.15s;
+}
+.page-btn:hover { border-color: var(--accent2); color: var(--accent); }
+.page-btn.active { background: rgba(0,212,255,0.1); border-color: var(--accent2); color: var(--accent); }
+.page-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+/* MAP */
+#map-container { height: 500px; border-radius: 8px; overflow: hidden; }
+#permit-map { height: 100%; width: 100%; }
+
+/* TIMELINE (D3) */
+#timeline-wrap { height: 220px; width: 100%; }
+
+/* TREEMAP (D3) */
+#treemap-wrap { height: 320px; width: 100%; }
+
+/* HEATMAP (D3) */
+#heatmap-wrap { height: 260px; width: 100%; overflow-x: auto; }
+
+/* TAB VIEWS */
+.tab-view { display: none; }
+.tab-view.active { display: block; }
+
+/* SECTION LABELS */
+.section-sep {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 24px 0 16px;
+}
+.section-sep-line { flex: 1; height: 1px; background: var(--border); }
+.section-sep-label {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--text3);
+  white-space: nowrap;
+}
+
+/* RESPONSIVE */
+@media (max-width: 768px) {
+  #header { padding: 0 14px; height: 50px; }
+  .logo-text { font-size: 14px; }
+  #record-count-badge { display: none; }
+  #main { padding: 14px; }
+  #kpi-row { grid-template-columns: repeat(2, 1fr); }
+  .kpi-value { font-size: 28px; }
+  .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  #filter-bar { gap: 8px; }
+  .filter-group { min-width: 100%; }
+  #map-container { height: 350px; }
+}
+@media (max-width: 480px) {
+  #kpi-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+  .kpi-card { padding: 14px; }
+  .kpi-value { font-size: 24px; }
+}
+
+/* Animated entry */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.kpi-card, .chart-card { animation: fadeUp 0.4s ease both; }
+.kpi-card:nth-child(1) { animation-delay: 0.05s; }
+.kpi-card:nth-child(2) { animation-delay: 0.1s; }
+.kpi-card:nth-child(3) { animation-delay: 0.15s; }
+.kpi-card:nth-child(4) { animation-delay: 0.2s; }
+.kpi-card:nth-child(5) { animation-delay: 0.25s; }
+.kpi-card:nth-child(6) { animation-delay: 0.3s; }
+
+.tooltip-dark {
+  background: var(--card2) !important;
+  border: 1px solid var(--border2) !important;
+  color: var(--text) !important;
+  font-family: 'IBM Plex Mono', monospace !important;
+  font-size: 11px !important;
+  border-radius: 6px !important;
+  padding: 8px 12px !important;
+}
+
+/* Error box */
+.error-box {
+  background: rgba(255,82,82,0.08);
+  border: 1px solid rgba(255,82,82,0.3);
+  border-radius: 8px;
+  padding: 16px 20px;
+  color: var(--red);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+</style>
+</head>
+<body>
+
+<!-- Loading Screen -->
+<div id="loading-screen">
+  <div class="loader-ring"></div>
+  <div id="loading-msg">INITIALIZING DATA PIPELINE...</div>
+  <div class="loader-bar">
+    <div class="loader-fill" id="loader-fill"></div>
+  </div>
+</div>
+
+<!-- Header -->
+<div id="header">
+  <div class="logo">
+    <div class="logo-icon"></div>
+    <div class="logo-text">CHATTA<span>DATA</span> · PERMITS</div>
+  </div>
+  <div class="header-right">
+    <div id="record-count-badge">— records loaded</div>
+    <div id="status-pill">
+      <div id="status-dot"></div>
+      <span id="status-text">LOADING</span>
+    </div>
+  </div>
+</div>
+
+<!-- Nav Tabs -->
+<div id="nav-tabs">
+  <button class="tab-btn active" data-tab="overview">
+    <span class="tab-icon">◎</span> Overview
+  </button>
+  <button class="tab-btn" data-tab="analytics">
+    <span class="tab-icon">▦</span> Analytics
+  </button>
+  <button class="tab-btn" data-tab="timeline">
+    <span class="tab-icon">◈</span> Timeline
+  </button>
+  <button class="tab-btn" data-tab="map">
+    <span class="tab-icon">◉</span> Map
+  </button>
+  <button class="tab-btn" data-tab="data">
+    <span class="tab-icon">≡</span> Raw Data
+  </button>
+</div>
+
+<!-- Main Content -->
+<div id="main">
+
+  <!-- Upload Fallback -->
+  <div id="upload-zone" onclick="document.getElementById('csv-input').click()"
+    ondragover="this.classList.add('drag-over');event.preventDefault()"
+    ondragleave="this.classList.remove('drag-over')"
+    ondrop="handleDrop(event)">
+    <div class="upload-icon">📂</div>
+    <div class="upload-title">Drop CSV File Here</div>
+    <div class="upload-sub">
+      Auto-fetch failed. Download the CSV from<br>
+      <a href="https://www.arcgis.com/sharing/rest/content/items/9937e99e93de467eae5f592061c2672c/data"
+         style="color:var(--accent)" target="_blank">ArcGIS Portal</a>
+      and drop it here.
+    </div>
+    <button class="upload-btn">Browse File</button>
+    <input type="file" id="csv-input" accept=".csv" style="display:none" onchange="loadFile(this.files[0])">
+  </div>
+
+  <!-- OVERVIEW TAB -->
+  <div class="tab-view active" id="tab-overview">
+    <div id="kpi-row">
+      <div class="kpi-card blue">
+        <div class="kpi-label">Total Permits</div>
+        <div class="kpi-value" id="kpi-total">—</div>
+        <div class="kpi-sub">All records</div>
+      </div>
+      <div class="kpi-card green">
+        <div class="kpi-label">Issued</div>
+        <div class="kpi-value" id="kpi-issued">—</div>
+        <div class="kpi-sub" id="kpi-issued-pct">—</div>
+      </div>
+      <div class="kpi-card yellow">
+        <div class="kpi-label">Pending</div>
+        <div class="kpi-value" id="kpi-pending">—</div>
+        <div class="kpi-sub">Open applications</div>
+      </div>
+      <div class="kpi-card red">
+        <div class="kpi-label">Expired</div>
+        <div class="kpi-value" id="kpi-expired">—</div>
+        <div class="kpi-sub">Lapsed permits</div>
+      </div>
+      <div class="kpi-card purple">
+        <div class="kpi-label">Permit Types</div>
+        <div class="kpi-value" id="kpi-types">—</div>
+        <div class="kpi-sub">Unique categories</div>
+      </div>
+      <div class="kpi-card orange">
+        <div class="kpi-label">This Year</div>
+        <div class="kpi-value" id="kpi-thisyear">—</div>
+        <div class="kpi-sub" id="kpi-year-label">—</div>
+      </div>
+    </div>
+
+    <div class="chart-grid grid-2">
+      <div class="chart-card">
+        <div class="chart-title">Permits by Type <span class="chart-title-badge">TOP 12</span></div>
+        <div class="chart-wrap"><canvas id="chart-by-type" height="300"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Status Distribution <span class="chart-title-badge">DONUT</span></div>
+        <div class="chart-wrap"><canvas id="chart-status" height="300"></canvas></div>
+      </div>
+    </div>
+
+    <div class="section-sep">
+      <div class="section-sep-line"></div>
+      <div class="section-sep-label">Category Deep-Dive</div>
+      <div class="section-sep-line"></div>
+    </div>
+
+    <div class="chart-grid grid-2">
+      <div class="chart-card">
+        <div class="chart-title">Monthly Permit Volume <span class="chart-title-badge">12 MO</span></div>
+        <div class="chart-wrap"><canvas id="chart-monthly" height="240"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Permits by Work Type <span class="chart-title-badge">BAR</span></div>
+        <div class="chart-wrap"><canvas id="chart-worktype" height="240"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ANALYTICS TAB -->
+  <div class="tab-view" id="tab-analytics">
+    <div class="chart-grid grid-2" style="margin-bottom:20px">
+      <div class="chart-card">
+        <div class="chart-title">Annual Permit Trends <span class="chart-title-badge">YEAR-OVER-YEAR</span></div>
+        <div class="chart-wrap"><canvas id="chart-annual" height="280"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Permits by Month of Year <span class="chart-title-badge">SEASONALITY</span></div>
+        <div class="chart-wrap"><canvas id="chart-season" height="280"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-grid grid-1" style="margin-bottom:20px">
+      <div class="chart-card">
+        <div class="chart-title">Top Contractors by Permit Count <span class="chart-title-badge">TOP 15</span></div>
+        <div class="chart-wrap"><canvas id="chart-contractors" height="260"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-grid grid-2">
+      <div class="chart-card">
+        <div class="chart-title">Permits by Zip Code <span class="chart-title-badge">GEO</span></div>
+        <div class="chart-wrap"><canvas id="chart-zip" height="260"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Status by Permit Type <span class="chart-title-badge">STACKED</span></div>
+        <div class="chart-wrap"><canvas id="chart-stacked" height="260"></canvas></div>
+      </div>
+    </div>
+    <div class="section-sep">
+      <div class="section-sep-line"></div>
+      <div class="section-sep-label">D3 Treemap — Permit Type Distribution</div>
+      <div class="section-sep-line"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Treemap — Volume by Permit Type</div>
+      <div id="treemap-wrap"></div>
+    </div>
+  </div>
+
+  <!-- TIMELINE TAB -->
+  <div class="tab-view" id="tab-timeline">
+    <div class="chart-card" style="margin-bottom:20px">
+      <div class="chart-title">Permits Issued Over Time <span class="chart-title-badge">D3 AREA</span></div>
+      <div id="timeline-wrap"></div>
+    </div>
+    <div class="chart-grid grid-2">
+      <div class="chart-card">
+        <div class="chart-title">Day of Week Distribution <span class="chart-title-badge">POLAR</span></div>
+        <div class="chart-wrap"><canvas id="chart-dow" height="300"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Quarterly Permits (All Years) <span class="chart-title-badge">LINE</span></div>
+        <div class="chart-wrap"><canvas id="chart-quarterly" height="300"></canvas></div>
+      </div>
+    </div>
+    <div class="chart-card" style="margin-top:20px">
+      <div class="chart-title">Activity Heatmap — Month × Year <span class="chart-title-badge">D3 HEATMAP</span></div>
+      <div id="heatmap-wrap"></div>
+    </div>
+  </div>
+
+  <!-- MAP TAB -->
+  <div class="tab-view" id="tab-map">
+    <div id="map-error" class="error-box" style="display:none"></div>
+    <div class="chart-card" style="padding:12px">
+      <div id="map-container">
+        <div id="permit-map"></div>
+      </div>
+    </div>
+    <div style="margin-top:12px; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text3); text-align:center;">
+      Map shows permit locations where lat/lng coordinates are available in the dataset.
+    </div>
+  </div>
+
+  <!-- DATA TAB -->
+  <div class="tab-view" id="tab-data">
+    <div id="filter-bar">
+      <div class="filter-group">
+        <div class="filter-label">Search</div>
+        <input class="filter-input" id="search-input" type="text" placeholder="Permit #, address, type..." oninput="applyFilters()">
+      </div>
+      <div class="filter-group">
+        <div class="filter-label">Permit Type</div>
+        <select class="filter-select" id="filter-type" onchange="applyFilters()">
+          <option value="">All Types</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <div class="filter-label">Status</div>
+        <select class="filter-select" id="filter-status" onchange="applyFilters()">
+          <option value="">All Statuses</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <div class="filter-label">Year</div>
+        <select class="filter-select" id="filter-year" onchange="applyFilters()">
+          <option value="">All Years</option>
+        </select>
+      </div>
+    </div>
+    <div id="table-wrap">
+      <table id="data-table">
+        <thead id="table-head"></thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+    <div id="pagination">
+      <div class="page-info" id="page-info">—</div>
+      <div class="page-btns" id="page-btns"></div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ============================================================
+// GLOBAL STATE
+// ============================================================
+let allData = [];
+let filteredData = [];
+let currentPage = 1;
+const PAGE_SIZE = 50;
+let sortCol = null;
+let sortDir = 1;
+let charts = {};
+let mapInstance = null;
+let mapMarkers = null;
+
+// ============================================================
+// DATA FETCHING — try multiple URLs
+// ============================================================
+const DATA_URLS = [
+  'https://opendata.arcgis.com/datasets/9937e99e93de467eae5f592061c2672c_0.csv',
+  'https://hub.arcgis.com/api/v3/datasets/9937e99e93de467eae5f592061c2672c_0/downloads/data?format=csv&spatialRefId=4326',
+];
+
+async function fetchData() {
+  setLoader(10, 'LOCATING DATA SOURCE...');
+  for (let i = 0; i < DATA_URLS.length; i++) {
+    try {
+      setLoader(20 + i*15, `ATTEMPTING SOURCE ${i+1}/${DATA_URLS.length}...`);
+      const resp = await fetch(DATA_URLS[i]);
+      if (!resp.ok) continue;
+      const text = await resp.text();
+      if (!text || text.length < 100) continue;
+      setLoader(60, 'PARSING CSV...');
+      const parsed = Papa.parse(text, { header: true, skipEmptyLines: true, dynamicTyping: false });
+      if (parsed.data && parsed.data.length > 0) {
+        setLoader(80, 'BUILDING VISUALIZATIONS...');
+        return parsed.data;
+      }
+    } catch(e) { console.warn('Source', i+1, 'failed:', e); }
+  }
+  return null;
+}
+
+function setLoader(pct, msg) {
+  document.getElementById('loader-fill').style.width = pct + '%';
+  document.getElementById('loading-msg').textContent = msg;
+}
+
+async function init() {
+  setLoader(5, 'CONNECTING TO ARCGIS HUB...');
+  const data = await fetchData();
+  if (!data || data.length === 0) {
+    hideLoading();
+    showUpload();
+    return;
+  }
+  allData = data;
+  filteredData = [...allData];
+  hideLoading();
+  buildDashboard();
+}
+
+function hideLoading() {
+  const ls = document.getElementById('loading-screen');
+  ls.style.opacity = '0';
+  ls.style.transition = 'opacity 0.4s';
+  setTimeout(() => ls.style.display = 'none', 400);
+}
+function showUpload() {
+  document.getElementById('upload-zone').style.display = 'flex';
+  document.getElementById('status-text').textContent = 'OFFLINE';
+  document.getElementById('status-dot').style.background = 'var(--red)';
+}
+
+// ============================================================
+// FILE UPLOAD FALLBACK
+// ============================================================
+function handleDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (file) loadFile(file);
+}
+function loadFile(file) {
+  if (!file) return;
+  document.getElementById('loading-screen').style.display = 'flex';
+  document.getElementById('loading-screen').style.opacity = '1';
+  setLoader(20, 'READING FILE...');
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: true,
+    complete: (r) => {
+      if (r.data && r.data.length > 0) {
+        allData = r.data;
+        filteredData = [...allData];
+        document.getElementById('upload-zone').style.display = 'none';
+        setLoader(70, 'BUILDING VISUALIZATIONS...');
+        setTimeout(() => { hideLoading(); buildDashboard(); }, 200);
+      }
+    }
+  });
+}
+
+// ============================================================
+// DETECT COLUMNS
+// ============================================================
+function detectCol(candidates) {
+  if (!allData.length) return null;
+  const keys = Object.keys(allData[0]).map(k => k.toLowerCase());
+  for (const c of candidates) {
+    const idx = keys.findIndex(k => k.includes(c.toLowerCase()));
+    if (idx !== -1) return Object.keys(allData[0])[idx];
+  }
+  return null;
+}
+
+let COL = {};
+function detectColumns() {
+  COL.permitNo   = detectCol(['permit_no','permitnumber','permitno','permit_num','permit_id','objectid','caseno']);
+  COL.type       = detectCol(['permit_type','permittype','type','category','work_type','worktype','permit_cat']);
+  COL.status     = detectCol(['status','permit_status','permitstatus','stat']);
+  COL.date       = detectCol(['issue_date','issuedate','date_issued','applied_date','applieddate','issue','date','created']);
+  COL.address    = detectCol(['address','location','site_address','siteaddress','prop_address']);
+  COL.contractor = detectCol(['contractor','cont_name','contractor_name','contname','applicant']);
+  COL.owner      = detectCol(['owner','ownername','owner_name']);
+  COL.zip        = detectCol(['zip','zipcode','zip_code','postal']);
+  COL.lat        = detectCol(['lat','latitude','y','ylat']);
+  COL.lng        = detectCol(['lng','lon','long','longitude','x','xlon']);
+  COL.workDesc   = detectCol(['work_desc','workdesc','description','description','desc','work_type','worktype']);
+  COL.valuation  = detectCol(['valuation','value','project_value','est_value']);
+}
+
+// ============================================================
+// MAIN BUILD
+// ============================================================
+function buildDashboard() {
+  detectColumns();
+  updateStatus();
+  buildKPIs();
+  buildFilters();
+  buildAllCharts();
+  buildTable();
+  buildMap();
+}
+
+function updateStatus() {
+  const n = allData.length;
+  document.getElementById('record-count-badge').textContent = `${n.toLocaleString()} records loaded`;
+  document.getElementById('status-text').textContent = 'LIVE';
+  document.getElementById('status-dot').style.background = 'var(--green)';
+}
+
+// ============================================================
+// KPIs
+// ============================================================
+function buildKPIs() {
+  const total = allData.length;
+  document.getElementById('kpi-total').textContent = fmtNum(total);
+
+  const statusCounts = countBy(allData, COL.status);
+  const issued = sumStatusLike(statusCounts, ['issued','active','complete','approved','finaled','final']);
+  const pending = sumStatusLike(statusCounts, ['pending','applied','in review','open','submitted','in progress','under review']);
+  const expired = sumStatusLike(statusCounts, ['expired','void','voided','cancelled','canceled','inactive','lapsed']);
+
+  document.getElementById('kpi-issued').textContent = fmtNum(issued);
+  document.getElementById('kpi-issued-pct').textContent = total ? pct(issued/total) + ' of total' : '—';
+  document.getElementById('kpi-pending').textContent = fmtNum(pending);
+  document.getElementById('kpi-expired').textContent = fmtNum(expired);
+
+  const types = COL.type ? new Set(allData.map(r => r[COL.type]).filter(Boolean)).size : '—';
+  document.getElementById('kpi-types').textContent = types;
+
+  const currentYear = new Date().getFullYear();
+  const thisYear = COL.date ? allData.filter(r => {
+    const d = parseDate(r[COL.date]);
+    return d && d.getFullYear() === currentYear;
+  }).length : 0;
+  document.getElementById('kpi-thisyear').textContent = fmtNum(thisYear);
+  document.getElementById('kpi-year-label').textContent = 'Permits in ' + currentYear;
+}
+
+function sumStatusLike(counts, keywords) {
+  let sum = 0;
+  for (const [k, v] of Object.entries(counts)) {
+    if (keywords.some(kw => k.toLowerCase().includes(kw))) sum += v;
+  }
+  return sum;
+}
+
+// ============================================================
+// FILTERS
+// ============================================================
+function buildFilters() {
+  if (COL.type) {
+    const types = [...new Set(allData.map(r => r[COL.type]).filter(Boolean))].sort();
+    fillSelect('filter-type', types);
+  }
+  if (COL.status) {
+    const statuses = [...new Set(allData.map(r => r[COL.status]).filter(Boolean))].sort();
+    fillSelect('filter-status', statuses);
+  }
+  if (COL.date) {
+    const years = [...new Set(allData.map(r => {
+      const d = parseDate(r[COL.date]);
+      return d ? d.getFullYear() : null;
+    }).filter(Boolean))].sort().reverse();
+    fillSelect('filter-year', years);
+  }
+  // Build table head
+  buildTableHead();
+}
+
+function fillSelect(id, vals) {
+  const sel = document.getElementById(id);
+  vals.forEach(v => {
+    const o = document.createElement('option');
+    o.value = v; o.textContent = v;
+    sel.appendChild(o);
+  });
+}
+
+function applyFilters() {
+  const search = document.getElementById('search-input').value.toLowerCase();
+  const type = document.getElementById('filter-type').value;
+  const status = document.getElementById('filter-status').value;
+  const year = document.getElementById('filter-year').value;
+
+  filteredData = allData.filter(r => {
+    if (type && r[COL.type] !== type) return false;
+    if (status && r[COL.status] !== status) return false;
+    if (year) {
+      const d = parseDate(r[COL.date]);
+      if (!d || d.getFullYear() !== parseInt(year)) return false;
+    }
+    if (search) {
+      const row = Object.values(r).join(' ').toLowerCase();
+      if (!row.includes(search)) return false;
+    }
+    return true;
+  });
+  currentPage = 1;
+  renderTable();
+}
+
+// ============================================================
+// ALL CHARTS
+// ============================================================
+function buildAllCharts() {
+  setTimeout(() => {
+    buildChartByType();
+    buildChartStatus();
+    buildChartMonthly();
+    buildChartWorkType();
+    buildChartAnnual();
+    buildChartSeason();
+    buildChartContractors();
+    buildChartZip();
+    buildChartStacked();
+    buildTreemap();
+    buildTimeline();
+    buildChartDOW();
+    buildChartQuarterly();
+    buildHeatmap();
+  }, 100);
+}
+
+const PALETTE = [
+  '#00d4ff','#00e676','#ffd740','#ff5252','#e040fb','#ff9100',
+  '#40c4ff','#69f0ae','#ffff00','#ff6e40','#ea80fc','#b2ff59',
+  '#80d8ff','#a7ffeb','#ffe57f','#ff9e80','#b388ff','#ccff90'
+];
+
+function mkChart(id, config) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (charts[id]) charts[id].destroy();
+  Chart.defaults.color = '#8892b0';
+  Chart.defaults.borderColor = '#1e2a42';
+  Chart.defaults.font.family = "'IBM Plex Mono', monospace";
+  Chart.defaults.font.size = 11;
+  charts[id] = new Chart(el, config);
+}
+
+// Permits by Type (horizontal bar)
+function buildChartByType() {
+  if (!COL.type) return;
+  const counts = topN(countBy(allData, COL.type), 12);
+  mkChart('chart-by-type', {
+    type: 'bar',
+    data: {
+      labels: counts.map(x => truncate(x[0], 22)),
+      datasets: [{
+        data: counts.map(x => x[1]),
+        backgroundColor: PALETTE.slice(0, 12).map(c => c + '99'),
+        borderColor: PALETTE.slice(0, 12),
+        borderWidth: 1,
+        borderRadius: 3,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: {
+        legend: { display: false },
+        tooltip: { mode: 'nearest', callbacks: { label: ctx => ' ' + ctx.raw.toLocaleString() + ' permits' } }
+      },
+      scales: {
+        x: { grid: { color: '#1e2a42' }, ticks: { color: '#4a5568' } },
+        y: { grid: { display: false }, ticks: { color: '#8892b0', font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+// Status donut
+function buildChartStatus() {
+  if (!COL.status) return;
+  const counts = topN(countBy(allData, COL.status), 8);
+  mkChart('chart-status', {
+    type: 'doughnut',
+    data: {
+      labels: counts.map(x => x[0] || 'Unknown'),
+      datasets: [{
+        data: counts.map(x => x[1]),
+        backgroundColor: PALETTE.map(c => c + 'bb'),
+        borderColor: '#0f1422',
+        borderWidth: 2,
+      }]
+    },
+    options: {
+      responsive: true,
+      cutout: '62%',
+      plugins: {
+        legend: { position: 'right', labels: { color: '#8892b0', boxWidth: 12, padding: 12 } },
+        tooltip: { callbacks: { label: ctx => ' ' + ctx.raw.toLocaleString() + ' (' + pct(ctx.raw/allData.length) + ')' } }
+      }
+    }
+  });
+}
+
+// Monthly (last 12 months)
+function buildChartMonthly() {
+  if (!COL.date) return;
+  const now = new Date();
+  const months = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    months.push({ label: d.toLocaleString('default', { month: 'short', year: '2-digit' }), key: `${d.getFullYear()}-${d.getMonth()}`, count: 0 });
+  }
+  allData.forEach(r => {
+    const d = parseDate(r[COL.date]);
+    if (!d) return;
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    const m = months.find(x => x.key === key);
+    if (m) m.count++;
+  });
+  mkChart('chart-monthly', {
+    type: 'bar',
+    data: {
+      labels: months.map(m => m.label),
+      datasets: [{
+        label: 'Permits',
+        data: months.map(m => m.count),
+        backgroundColor: months.map((_, i) => i === 11 ? '#00d4ff' : '#00d4ff44'),
+        borderColor: '#00d4ff',
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#4a5568', font: { size: 9 } } },
+        y: { grid: { color: '#1e2a42' }, ticks: { color: '#4a5568' } }
+      }
+    }
+  });
+}
+
+// Work type
+function buildChartWorkType() {
+  const col = COL.workDesc || COL.type;
+  if (!col) return;
+  const counts = topN(countBy(allData, col), 10);
+  mkChart('chart-worktype', {
+    type: 'bar',
+    data: {
+      labels: counts.map(x => truncate(x[0], 18)),
+      datasets: [{
+        data: counts.map(x => x[1]),
+        backgroundColor: ['#00d4ff','#00e676','#ffd740','#ff5252','#e040fb','#ff9100','#40c4ff','#69f0ae','#ffff00','#ff6e40'].map(c => c + '88'),
+        borderColor: ['#00d4ff','#00e676','#ffd740','#ff5252','#e040fb','#ff9100','#40c4ff','#69f0ae','#ffff00','#ff6e40'],
+        borderWidth: 1, borderRadius: 3,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#4a5568', font: { size: 9 }, maxRotation: 30 } },
+        y: { grid: { color: '#1e2a42' }, ticks: { color: '#4a5568' } }
+      }
+    }
+  });
+}
+
+// Annual
+function buildChartAnnual() {
+  if (!COL.date) return;
+  const yearCounts = {};
+  allData.forEach(r => {
+    const d = parseDate(r[COL.date]);
+    if (!d) return;
+    const y = d.getFullYear();
+    if (y < 1990 || y > 2030) return;
+    yearCounts[y] = (yearCounts[y] || 0) + 1;
+  });
+  const sorted = Object.entries(yearCounts).sort((a,b) => a[0]-b[0]);
+  mkChart('chart-annual', {
+    type: 'line',
+    data: {
+      labels: sorted.map(x => x[0]),
+      datasets: [{
+        label: 'Permits',
+        data: sorted.map(x => x[1]),
+        borderColor: '#00d4ff',
+        backgroundColor: 'rgba(0,212,255,0.08)',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.3,
+        pointBackgroundColor: '#00d4ff',
+        pointRadius: 3,
+        pointHoverRadius: 5,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#1e2a42' }, ticks: { color: '#4a5568' } },
+        y: { grid: { color: '#1e2a42' }, ticks: { color: '#4a5568' } }
+      }
+    }
+  });
+}
+
+// Seasonality (by calendar month)
+function buildChartSeason() {
+  if (!COL.date) return;
+  const months = Array(12).fill(0);
+  allData.forEach(r => {
+    const d = parseDate(r[COL.date]);
+    if (!d) return;
+    months[d.getMonth()]++;
+  });
+  const labels = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  mkChart('chart-season', {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [{
+        data: months,
+        backgroundColor: months.map((v, i) => {
+          const maxV = Math.max(...months);
+          const alpha = 0.3 + 0.7 * (v / (maxV || 1));
+          return `rgba(0,212,255,${alpha.toFixed(2)})`;
+        }),
+        borderColor: '#00d4ff',
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#4a5568' } },
+        y: { grid: { color: '#1e2a42' }, ticks: { color: '#4a5568' } }
+      }
+    }
+  });
+}
+
+// Contractors
+function buildChartContractors() {
+  if (!COL.contractor) return;
+  const counts = topN(countBy(allData.filter(r => r[COL.contractor] && r[COL.contractor].trim()), COL.contractor), 15);
+  if (!counts.length) return;
+  mkChart('chart-contractors', {
+    type: 'bar',
+    data: {
+      labels: counts.map(x => truncate(x[0], 30)),
+      datasets: [{
+        data: counts.map(x => x[1]),
+        backgroundColor: '#00e67644',
+        borderColor: '#00e676',
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      indexAxis: 'y',
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#1e2a42' }, ticks: { color: '#4a5568' } },
+        y: { grid: { display: false }, ticks: { color: '#8892b0', font: { size: 10 } } }
+      }
+    }
+  });
+}
+
+// By Zip
+function buildChartZip() {
+  if (!COL.zip) return;
+  const counts = topN(countBy(allData.filter(r => r[COL.zip]), COL.zip), 15);
+  if (!counts.length) return;
+  mkChart('chart-zip', {
+    type: 'bar',
+    data: {
+      labels: counts.map(x => x[0]),
+      datasets: [{
+        data: counts.map(x => x[1]),
+        backgroundColor: '#ffd74044',
+        borderColor: '#ffd740',
+        borderWidth: 1,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { display: false }, ticks: { color: '#4a5568', font: { size: 10 } } },
+        y: { grid: { color: '#1e2a42' }, ticks: { color: '#4a5568' } }
+      }
+    }
+  });
+}
+
+// Stacked: status by type (top 8 types)
+function buildChartStacked() {
+  if (!COL.type || !COL.status) return;
+  const topTypes = topN(countBy(allData, COL.type), 8).map(x => x[0]);
+  const statuses = [...new Set(allData.map(r => r[COL.status]).filter(Boolean))].slice(0,5);
+  const datasets = statuses.map((s, i) => ({
+    label: s || 'Unknown',
+    data: topTypes.map(t => allData.filter(r => r[COL.type] === t && r[COL.status] === s).length),
+    backgroundColor: PALETTE[i] + '99',
+    borderColor: PALETTE[i],
+    borderWidth: 1,
+  }));
+  mkChart('chart-stacked', {
+    type: 'bar',
+    data: { labels: topTypes.map(t => truncate(t, 16)), datasets },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'bottom', labels: { color: '#8892b0', boxWidth: 10, padding: 10, font: { size: 10 } } } },
+      scales: {
+        x: { stacked: true, grid: { display: false }, ticks: { color: '#4a5568', font: { size: 9 }, maxRotation: 30 } },
+        y: { stacked: true, grid: { color: '#1e2a42' }, ticks: { color: '#4a5568' } }
+      }
+    }
+  });
+}
+
+// Day of week
+function buildChartDOW() {
+  if (!COL.date) return;
+  const days = Array(7).fill(0);
+  allData.forEach(r => {
+    const d = parseDate(r[COL.date]);
+    if (d) days[d.getDay()]++;
+  });
+  const labels = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  mkChart('chart-dow', {
+    type: 'polarArea',
+    data: {
+      labels,
+      datasets: [{
+        data: days,
+        backgroundColor: PALETTE.slice(0,7).map(c => c + '99'),
+        borderColor: PALETTE.slice(0,7),
+        borderWidth: 1,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: { position: 'right', labels: { color: '#8892b0', boxWidth: 10, padding: 8 } }
+      },
+      scales: { r: { grid: { color: '#1e2a42' }, ticks: { color: '#4a5568', backdropColor: 'transparent' } } }
+    }
+  });
+}
+
+// Quarterly
+function buildChartQuarterly() {
+  if (!COL.date) return;
+  const qCounts = {};
+  allData.forEach(r => {
+    const d = parseDate(r[COL.date]);
+    if (!d) return;
+    const y = d.getFullYear();
+    if (y < 1990 || y > 2030) return;
+    const q = Math.floor(d.getMonth()/3) + 1;
+    const key = `${y} Q${q}`;
+    qCounts[key] = (qCounts[key] || 0) + 1;
+  });
+  const sorted = Object.entries(qCounts).sort((a,b) => a[0] < b[0] ? -1 : 1);
+  mkChart('chart-quarterly', {
+    type: 'line',
+    data: {
+      labels: sorted.map(x => x[0]),
+      datasets: [{
+        label: 'Permits',
+        data: sorted.map(x => x[1]),
+        borderColor: '#e040fb',
+        backgroundColor: 'rgba(224,64,251,0.07)',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.2,
+        pointRadius: 2,
+        pointBackgroundColor: '#e040fb',
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#1e2a42' }, ticks: { color: '#4a5568', maxTicksLimit: 12, maxRotation: 45 } },
+        y: { grid: { color: '#1e2a42' }, ticks: { color: '#4a5568' } }
+      }
+    }
+  });
+}
+
+// ============================================================
+// D3 TREEMAP
+// ============================================================
+function buildTreemap() {
+  if (!COL.type) return;
+  const el = document.getElementById('treemap-wrap');
+  if (!el) return;
+  const counts = topN(countBy(allData, COL.type), 20);
+  const W = el.clientWidth || 800, H = 320;
+  el.innerHTML = '';
+  const svg = d3.select(el).append('svg').attr('width', W).attr('height', H);
+
+  const root = d3.hierarchy({ children: counts.map(([name, value]) => ({ name, value })) })
+    .sum(d => d.value);
+  d3.treemap().size([W, H]).padding(2)(root);
+
+  const cell = svg.selectAll('g').data(root.leaves()).enter().append('g')
+    .attr('transform', d => `translate(${d.x0},${d.y0})`);
+
+  cell.append('rect')
+    .attr('width', d => Math.max(0, d.x1 - d.x0))
+    .attr('height', d => Math.max(0, d.y1 - d.y0))
+    .attr('fill', (d, i) => PALETTE[i % PALETTE.length] + '55')
+    .attr('stroke', (d, i) => PALETTE[i % PALETTE.length])
+    .attr('stroke-width', 1)
+    .attr('rx', 3);
+
+  cell.append('text')
+    .attr('x', 6).attr('y', 14)
+    .attr('fill', (d, i) => PALETTE[i % PALETTE.length])
+    .attr('font-size', d => {
+      const w = d.x1 - d.x0;
+      return w > 80 ? '11px' : '9px';
+    })
+    .attr('font-family', "'IBM Plex Mono', monospace")
+    .text(d => {
+      const w = d.x1 - d.x0;
+      return w > 50 ? truncate(d.data.name, Math.floor(w/7)) : '';
+    });
+
+  cell.append('text')
+    .attr('x', 6).attr('y', 28)
+    .attr('fill', '#8892b0')
+    .attr('font-size', '10px')
+    .attr('font-family', "'IBM Plex Mono', monospace")
+    .text(d => {
+      const w = d.x1 - d.x0;
+      return w > 50 ? d.data.value.toLocaleString() : '';
+    });
+}
+
+// ============================================================
+// D3 TIMELINE (Area Chart)
+// ============================================================
+function buildTimeline() {
+  if (!COL.date) return;
+  const el = document.getElementById('timeline-wrap');
+  if (!el) return;
+  el.innerHTML = '';
+
+  // Build monthly data
+  const monthly = {};
+  allData.forEach(r => {
+    const d = parseDate(r[COL.date]);
+    if (!d) return;
+    const y = d.getFullYear();
+    if (y < 1990 || y > 2030) return;
+    const key = new Date(y, d.getMonth(), 1).getTime();
+    monthly[key] = (monthly[key] || 0) + 1;
+  });
+  const data = Object.entries(monthly).map(([t, v]) => ({ date: new Date(+t), count: v })).sort((a,b) => a.date-b.date);
+  if (!data.length) return;
+
+  const W = el.clientWidth || 800, H = 200;
+  const margin = { top: 10, right: 20, bottom: 30, left: 50 };
+  const iW = W - margin.left - margin.right;
+  const iH = H - margin.top - margin.bottom;
+
+  const svg = d3.select(el).append('svg').attr('width', W).attr('height', H);
+  const g = svg.append('g').attr('transform', `translate(${margin.left},${margin.top})`);
+
+  const x = d3.scaleTime().domain(d3.extent(data, d => d.date)).range([0, iW]);
+  const y = d3.scaleLinear().domain([0, d3.max(data, d => d.count) * 1.1]).range([iH, 0]);
+
+  const area = d3.area().x(d => x(d.date)).y0(iH).y1(d => y(d.count)).curve(d3.curveCatmullRom);
+  const line = d3.line().x(d => x(d.date)).y(d => y(d.count)).curve(d3.curveCatmullRom);
+
+  // Gradient
+  const defs = svg.append('defs');
+  const grad = defs.append('linearGradient').attr('id','tlgrad').attr('x1','0').attr('y1','0').attr('x2','0').attr('y2','1');
+  grad.append('stop').attr('offset','0%').attr('stop-color','#00d4ff').attr('stop-opacity',0.4);
+  grad.append('stop').attr('offset','100%').attr('stop-color','#00d4ff').attr('stop-opacity',0);
+
+  g.append('path').datum(data).attr('fill','url(#tlgrad)').attr('d', area);
+  g.append('path').datum(data).attr('fill','none').attr('stroke','#00d4ff').attr('stroke-width',2).attr('d', line);
+
+  // Axes
+  g.append('g').attr('transform', `translate(0,${iH})`)
+    .call(d3.axisBottom(x).ticks(8).tickFormat(d3.timeFormat('%b %Y')))
+    .selectAll('text').style('fill','#4a5568').style('font-size','10px').attr('transform','rotate(-20)').attr('text-anchor','end');
+  g.append('g')
+    .call(d3.axisLeft(y).ticks(5))
+    .selectAll('text').style('fill','#4a5568').style('font-size','10px');
+
+  g.selectAll('.domain, .tick line').style('stroke','#1e2a42');
+}
+
+// ============================================================
+// D3 HEATMAP
+// ============================================================
+function buildHeatmap() {
+  if (!COL.date) return;
+  const el = document.getElementById('heatmap-wrap');
+  if (!el) return;
+  el.innerHTML = '';
+
+  const matrix = {};
+  allData.forEach(r => {
+    const d = parseDate(r[COL.date]);
+    if (!d) return;
+    const y = d.getFullYear();
+    if (y < 2005 || y > 2030) return;
+    const m = d.getMonth();
+    const key = `${y}-${m}`;
+    matrix[key] = (matrix[key] || 0) + 1;
+  });
+
+  const years = [...new Set(Object.keys(matrix).map(k => parseInt(k.split('-')[0])))].sort();
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const vals = Object.values(matrix);
+  const maxVal = Math.max(...vals, 1);
+
+  const cellW = 28, cellH = 22, padX = 50, padY = 30;
+  const W = Math.max(el.clientWidth, months.length * cellW + padX + 20);
+  const H = years.length * cellH + padY + 20;
+
+  const svg = d3.select(el).append('svg').attr('width', W).attr('height', H);
+  const color = d3.scaleSequential(d3.interpolateBlues).domain([0, maxVal]);
+
+  // Month labels
+  months.forEach((m, i) => {
+    svg.append('text').attr('x', padX + i * cellW + cellW/2).attr('y', 16)
+      .attr('text-anchor','middle').attr('fill','#4a5568')
+      .attr('font-size','9px').attr('font-family',"'IBM Plex Mono', monospace")
+      .text(m);
+  });
+
+  years.forEach((y, yi) => {
+    // Year label
+    svg.append('text').attr('x', padX - 6).attr('y', padY + yi * cellH + cellH/2 + 4)
+      .attr('text-anchor','end').attr('fill','#4a5568')
+      .attr('font-size','9px').attr('font-family',"'IBM Plex Mono', monospace")
+      .text(y);
+
+    months.forEach((m, mi) => {
+      const v = matrix[`${y}-${mi}`] || 0;
+      const col = v === 0 ? '#1a2035' : d3.interpolate('#1a3855', '#00d4ff')(v/maxVal);
+      svg.append('rect')
+        .attr('x', padX + mi * cellW + 1).attr('y', padY + yi * cellH + 1)
+        .attr('width', cellW - 2).attr('height', cellH - 2)
+        .attr('fill', col).attr('rx', 2)
+        .append('title').text(`${m} ${y}: ${v} permits`);
+    });
+  });
+}
+
+// ============================================================
+// MAP (Leaflet)
+// ============================================================
+function buildMap() {
+  setTimeout(() => {
+    if (!mapInstance) {
+      mapInstance = L.map('permit-map', { preferCanvas: true }).setView([35.045, -85.309], 12);
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '©OpenStreetMap, ©CartoDB',
+        maxZoom: 19
+      }).addTo(mapInstance);
+    }
+
+    if (!COL.lat || !COL.lng) {
+      document.getElementById('map-error').style.display = 'block';
+      document.getElementById('map-error').textContent = 'No coordinate columns detected in dataset. Map requires lat/lng fields.';
+      return;
+    }
+
+    const pts = allData
+      .filter(r => r[COL.lat] && r[COL.lng] && !isNaN(parseFloat(r[COL.lat])) && !isNaN(parseFloat(r[COL.lng])))
+      .slice(0, 5000);
+
+    if (!pts.length) {
+      document.getElementById('map-error').style.display = 'block';
+      document.getElementById('map-error').textContent = 'No valid coordinates found in the data.';
+      return;
+    }
+
+    if (mapMarkers) { mapMarkers.clearLayers(); }
+
+    mapMarkers = L.layerGroup();
+    const statusColorMap = (s) => {
+      if (!s) return '#8892b0';
+      const sl = s.toLowerCase();
+      if (sl.includes('issued') || sl.includes('active') || sl.includes('final')) return '#00e676';
+      if (sl.includes('pending') || sl.includes('review') || sl.includes('open')) return '#ffd740';
+      if (sl.includes('void') || sl.includes('cancel') || sl.includes('expire')) return '#ff5252';
+      return '#00d4ff';
+    };
+
+    pts.forEach(r => {
+      const lat = parseFloat(r[COL.lat]);
+      const lng = parseFloat(r[COL.lng]);
+      if (isNaN(lat) || isNaN(lng)) return;
+      const color = statusColorMap(r[COL.status]);
+      const marker = L.circleMarker([lat, lng], {
+        radius: 4, color: color, fillColor: color,
+        fillOpacity: 0.7, weight: 0
+      });
+      const popup = [
+        COL.permitNo && r[COL.permitNo] ? `<b>#${r[COL.permitNo]}</b>` : '',
+        COL.type && r[COL.type] ? r[COL.type] : '',
+        COL.status && r[COL.status] ? `Status: ${r[COL.status]}` : '',
+        COL.address && r[COL.address] ? r[COL.address] : '',
+        COL.date && r[COL.date] ? r[COL.date] : '',
+      ].filter(Boolean).join('<br>');
+      marker.bindPopup(`<div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:#e8eaf6;background:#141928;border-radius:6px;padding:8px">${popup}</div>`);
+      mapMarkers.addLayer(marker);
+    });
+
+    mapMarkers.addTo(mapInstance);
+  }, 300);
+}
+
+// ============================================================
+// TABLE
+// ============================================================
+function buildTableHead() {
+  if (!allData.length) return;
+  const keys = Object.keys(allData[0]).slice(0, 12);
+  const thead = document.getElementById('table-head');
+  thead.innerHTML = '<tr>' + keys.map(k =>
+    `<th onclick="sortBy('${k}')" id="th-${k.replace(/\W/g,'_')}">${k.replace(/_/g,' ')}</th>`
+  ).join('') + '</tr>';
+  renderTable();
+}
+
+function renderTable() {
+  const start = (currentPage - 1) * PAGE_SIZE;
+  const end = start + PAGE_SIZE;
+  const page = filteredData.slice(start, end);
+  const keys = allData.length ? Object.keys(allData[0]).slice(0, 12) : [];
+
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = page.map(r =>
+    '<tr>' + keys.map((k, i) => {
+      let val = r[k] || '';
+      if (k === COL.status && val) {
+        const cls = getStatusClass(val);
+        return `<td><span class="status-badge ${cls}">${val}</span></td>`;
+      }
+      return `<td title="${val}">${truncate(val, 25)}</td>`;
+    }).join('') + '</tr>'
+  ).join('');
+
+  document.getElementById('page-info').textContent =
+    `Showing ${(start+1).toLocaleString()}–${Math.min(end, filteredData.length).toLocaleString()} of ${filteredData.length.toLocaleString()} records`;
+  buildPagination();
+}
+
+function buildPagination() {
+  const total = Math.ceil(filteredData.length / PAGE_SIZE);
+  const el = document.getElementById('page-btns');
+  const pages = [];
+  if (currentPage > 1) pages.push({ label: '←', page: currentPage-1 });
+  const start = Math.max(1, currentPage - 2);
+  const end2 = Math.min(total, currentPage + 2);
+  for (let i = start; i <= end2; i++) pages.push({ label: i, page: i, active: i === currentPage });
+  if (currentPage < total) pages.push({ label: '→', page: currentPage+1 });
+
+  el.innerHTML = pages.map(p =>
+    `<button class="page-btn${p.active ? ' active' : ''}" onclick="goPage(${p.page})">${p.label}</button>`
+  ).join('');
+}
+
+function goPage(p) { currentPage = p; renderTable(); document.getElementById('table-wrap').scrollTop = 0; }
+
+function sortBy(col) {
+  if (sortCol === col) sortDir *= -1;
+  else { sortCol = col; sortDir = 1; }
+  filteredData.sort((a, b) => {
+    const av = a[col] || ''; const bv = b[col] || '';
+    return sortDir * (av < bv ? -1 : av > bv ? 1 : 0);
+  });
+  currentPage = 1;
+  renderTable();
+}
+
+function getStatusClass(s) {
+  const sl = s.toLowerCase();
+  if (sl.includes('issued') || sl.includes('active') || sl.includes('final') || sl.includes('complet') || sl.includes('approved')) return 'status-issued';
+  if (sl.includes('pend') || sl.includes('review') || sl.includes('open') || sl.includes('submit') || sl.includes('progress')) return 'status-pending';
+  if (sl.includes('expir') || sl.includes('laps')) return 'status-expired';
+  if (sl.includes('void') || sl.includes('cancel')) return 'status-voided';
+  return 'status-other';
+}
+
+// ============================================================
+// TABS
+// ============================================================
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
+    btn.classList.add('active');
+    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    // Trigger map resize
+    if (btn.dataset.tab === 'map' && mapInstance) {
+      setTimeout(() => mapInstance.invalidateSize(), 100);
+    }
+    // Rebuild D3 charts on tab switch (for correct sizing)
+    if (btn.dataset.tab === 'analytics') { buildTreemap(); }
+    if (btn.dataset.tab === 'timeline') { buildTimeline(); buildHeatmap(); }
+  });
+});
+
+// ============================================================
+// HELPERS
+// ============================================================
+function countBy(arr, col) {
+  if (!col) return {};
+  return arr.reduce((acc, r) => {
+    const v = r[col] || '(blank)';
+    acc[v] = (acc[v] || 0) + 1;
+    return acc;
+  }, {});
+}
+function topN(counts, n) {
+  return Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, n);
+}
+function parseDate(s) {
+  if (!s) return null;
+  const d = new Date(s);
+  return isNaN(d) ? null : d;
+}
+function fmtNum(n) {
+  if (n >= 1000000) return (n/1000000).toFixed(1) + 'M';
+  if (n >= 1000) return (n/1000).toFixed(1) + 'K';
+  return n.toLocaleString();
+}
+function pct(v) { return (v * 100).toFixed(1) + '%'; }
+function truncate(s, n) { if (!s) return ''; s = String(s); return s.length > n ? s.slice(0, n) + '…' : s; }
+
+// Handle window resize for D3
+let resizeTimer;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(() => {
+    const activeTab = document.querySelector('.tab-btn.active')?.dataset?.tab;
+    if (activeTab === 'analytics') buildTreemap();
+    if (activeTab === 'timeline') { buildTimeline(); buildHeatmap(); }
+  }, 300);
+});
+
+// INIT
+init();
+</script>
+</body>
+</html>
